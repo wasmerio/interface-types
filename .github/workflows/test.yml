@@ -1,0 +1,57 @@
+name: Build and Test
+
+on: [push, pull_request]
+
+jobs:
+  # The `test` job.
+  test:
+    name: Test
+
+    strategy:
+      matrix:
+        # The job runs on different OS.
+        os: [ubuntu-latest, macos-latest, windows-latest]
+      # As soon as one job fails in the matrix, all the other
+      # in-progress jobs are canceled.
+      fail-fast: true
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          default: true
+          override: true
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: ${{ matrix.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache Cargo bin
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/bin
+          key: ${{ matrix.os }}-cargo-bin-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache Cargo build
+        uses: actions/cache@v1
+        with:
+          path: target
+          key: ${{ matrix.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Compile the library
+        shell: bash
+        run: |
+          export PATH="$HOME/.cargo/bin:$PATH"
+          cargo build --release
+
+      - name: Run all the tests
+        shell: bash
+        run: |
+          cargo test --release
