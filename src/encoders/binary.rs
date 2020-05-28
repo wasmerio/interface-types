@@ -190,7 +190,7 @@ where
     fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
         self.namespace.to_bytes(writer)?;
         self.name.to_bytes(writer)?;
-        (self.signature_type as u64).to_bytes(writer)?;
+        (self.function_type as u64).to_bytes(writer)?;
 
         Ok(())
     }
@@ -556,7 +556,7 @@ mod tests {
             Import {
                 namespace: "a",
                 name: "b",
-                signature_type: 0,
+                function_type: 0,
             },
             &[
                 0x01, // string of length 1
@@ -594,7 +594,7 @@ mod tests {
                 imports: vec![Import {
                     namespace: "ab",
                     name: "c",
-                    signature_type: 0,
+                    function_type: 0,
                 }],
                 adapters: vec![Adapter {
                     function_type: 0,

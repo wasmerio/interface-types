@@ -477,7 +477,7 @@ impl<'a> Parse<'a> for Import<'a> {
         let namespace = parser.parse()?;
         let name = parser.parse()?;
 
-        let signature_type = parser.parens(|parser| {
+        let function_type = parser.parens(|parser| {
             parser.parse::<keyword::func>()?;
 
             parser.parens(|parser| {
@@ -490,7 +490,7 @@ impl<'a> Parse<'a> for Import<'a> {
         Ok(Import {
             namespace,
             name,
-            signature_type,
+            function_type,
         })
     }
 }
@@ -616,7 +616,7 @@ impl<'a> Parse<'a> for Interfaces<'a> {
 ///     imports: vec![Import {
 ///         namespace: "ns",
 ///         name: "foo",
-///         signature_type: 0,
+///         function_type: 0,
 ///     }],
 ///     adapters: vec![Adapter {
 ///         function_type: 0,
@@ -907,7 +907,7 @@ mod tests {
         let output = Interface::Import(Import {
             namespace: "ns",
             name: "foo",
-            signature_type: 0,
+            function_type: 0,
         });
 
         assert_eq!(parser::parse::<Interface>(&input).unwrap(), output);
@@ -956,7 +956,7 @@ mod tests {
             imports: vec![Import {
                 namespace: "ns",
                 name: "foo",
-                signature_type: 0,
+                function_type: 0,
             }],
             adapters: vec![Adapter {
                 function_type: 0,

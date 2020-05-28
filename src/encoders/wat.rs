@@ -18,7 +18,7 @@
 //!     imports: vec![Import {
 //!         namespace: "ns",
 //!         name: "foo",
-//!         signature_type: 0,
+//!         function_type: 0,
 //!     }],
 //!     adapters: vec![Adapter {
 //!         function_type: 0,
@@ -207,7 +207,7 @@ impl<'input> ToString for &Import<'input> {
             r#"(@interface import "{namespace}" "{name}" (func (type {type})))"#,
             namespace = self.namespace,
             name = self.name,
-            type = self.signature_type,
+            type = self.function_type,
         )
     }
 }
@@ -571,7 +571,7 @@ mod tests {
         let input = (&Import {
             namespace: "ns",
             name: "foo",
-            signature_type: 0,
+            function_type: 0,
         })
             .to_string();
         let output = r#"(@interface import "ns" "foo" (func (type 0)))"#;
@@ -602,7 +602,7 @@ mod tests {
             imports: vec![Import {
                 namespace: "ns",
                 name: "foo",
-                signature_type: 0,
+                function_type: 0,
             }],
             adapters: vec![Adapter {
                 function_type: 0,

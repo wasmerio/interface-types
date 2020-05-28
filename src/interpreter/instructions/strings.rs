@@ -44,7 +44,7 @@ executable_instruction!(
                 return Ok(())
             }
 
-            if memory_view.len() <= pointer + length - 1 {
+            if memory_view.len() < pointer + length {
                 return Err(InstructionError::new(
                     instruction,
                     InstructionErrorKind::MemoryOutOfBoundsAccess {
@@ -54,7 +54,7 @@ executable_instruction!(
                 ));
             }
 
-            let data: Vec<u8> = (&memory_view[pointer..=pointer + length - 1])
+            let data: Vec<u8> = (&memory_view[pointer..pointer + length])
                 .iter()
                 .map(Cell::get)
                 .collect();

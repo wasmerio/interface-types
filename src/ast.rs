@@ -51,7 +51,7 @@ pub struct Import<'input> {
     pub name: &'input str,
 
     /// The type signature.
-    pub signature_type: u32,
+    pub function_type: u32,
 }
 
 /// Represents an exported function signature.

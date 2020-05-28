@@ -23,7 +23,7 @@ fn test_binary_encoding_decoding_roundtrip() {
         imports: vec![Import {
             namespace: "a",
             name: "b",
-            signature_type: 0,
+            function_type: 0,
         }],
         adapters: vec![Adapter {
             function_type: 0,

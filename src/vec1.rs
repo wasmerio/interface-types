@@ -33,7 +33,7 @@ where
     /// Creates a new non-empty vector, based on an inner `Vec<T>`. If
     /// the inner vector is empty, a `EmptyVec` error is returned.
     pub fn new(items: Vec<T>) -> Result<Self, EmptyVec> {
-        if items.len() == 0 {
+        if items.is_empty() {
             Err(EmptyVec)
         } else {
             Ok(Self(items))

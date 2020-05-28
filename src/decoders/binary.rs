@@ -304,12 +304,12 @@ fn imports<'input, E: ParseError<&'input [u8]>>(
     for _ in 0..number_of_imports {
         consume!((input, namespace) = string(input)?);
         consume!((input, name) = string(input)?);
-        consume!((input, signature_type) = uleb(input)?);
+        consume!((input, function_type) = uleb(input)?);
 
         imports.push(Import {
             namespace,
             name,
-            signature_type: signature_type as u32,
+            function_type: function_type as u32,
         });
     }
 
@@ -495,7 +495,7 @@ fn interfaces<'input, E: ParseError<&'input [u8]>>(
 ///         imports: vec![Import {
 ///             namespace: "ab",
 ///             name: "c",
-///             signature_type: 0,
+///             function_type: 0,
 ///         }],
 ///         adapters: vec![Adapter {
 ///             function_type: 0,
@@ -890,12 +890,12 @@ mod tests {
                 Import {
                     namespace: "a",
                     name: "b",
-                    signature_type: 1,
+                    function_type: 1,
                 },
                 Import {
                     namespace: "c",
                     name: "d",
-                    signature_type: 2,
+                    function_type: 2,
                 },
             ],
         ));
@@ -968,7 +968,7 @@ mod tests {
                 imports: vec![Import {
                     namespace: "ab",
                     name: "c",
-                    signature_type: 0,
+                    function_type: 0,
                 }],
                 adapters: vec![Adapter {
                     function_type: 0,
