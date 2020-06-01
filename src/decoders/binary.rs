@@ -256,6 +256,10 @@ fn instruction<'input, E: ParseError<&'input [u8]>>(
             )
         }
 
+        0x34 => (input, Instruction::Dup),
+
+        0x35 => (input, Instruction::Swap2),
+
         _ => return Err(Err::Error(make_error(input, ErrorKind::ParseTo))),
     })
 }

@@ -140,6 +140,8 @@ impl ToString for &Instruction {
             Instruction::StringSize => "string.size".into(),
             Instruction::RecordLift { type_index } => format!("record.lift {}", type_index),
             Instruction::RecordLower { type_index } => format!("record.lower {}", type_index),
+            Instruction::Dup => "dup".into(),
+            Instruction::Swap2 => "swap2".into(),
         }
     }
 }

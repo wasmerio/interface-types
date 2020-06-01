@@ -67,6 +67,8 @@ mod keyword {
     custom_keyword!(string_size = "string.size");
     custom_keyword!(record_lift = "record.lift");
     custom_keyword!(record_lower = "record.lower");
+    custom_keyword!(dup = "dup");
+    custom_keyword!(swap2 = "swap2");
 }
 
 impl Parse<'_> for InterfaceType {
@@ -326,6 +328,14 @@ impl<'a> Parse<'a> for Instruction {
             Ok(Instruction::RecordLower {
                 type_index: parser.parse()?,
             })
+        } else if lookahead.peek::<keyword::dup>() {
+            parser.parse::<keyword::dup>()?;
+
+            Ok(Instruction::Dup)
+        } else if lookahead.peek::<keyword::swap2>() {
+            parser.parse::<keyword::swap2>()?;
+
+            Ok(Instruction::Swap2)
         } else {
             Err(lookahead.error())
         }

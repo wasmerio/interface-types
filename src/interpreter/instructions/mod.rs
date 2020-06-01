@@ -3,6 +3,8 @@ mod call_core;
 mod numbers;
 mod records;
 mod strings;
+mod dup;
+mod swap2;
 
 use crate::{
     errors::{InstructionError, InstructionErrorKind, InstructionResult, WasmValueNativeCastError},
@@ -14,6 +16,8 @@ pub(crate) use numbers::*;
 pub(crate) use records::*;
 use std::convert::TryFrom;
 pub(crate) use strings::*;
+pub(crate) use dup::dup;
+pub(crate) use swap2::swap2;
 
 /// Represents all the possible WIT instructions.
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -146,6 +150,12 @@ pub enum Instruction {
         /// The type index of the record.
         type_index: u32,
     },
+
+    /// The `dup` instructions.
+    Dup,
+
+    /// The `swap` instructions.
+    Swap2,
 }
 
 /// Just a short helper to map the error of a cast from an

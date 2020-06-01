@@ -54,6 +54,8 @@ executable_instruction!(
                 )
             })?;
 
+
+
             for output in outputs.into_iter() {
                 runtime.stack.push(output)
             }

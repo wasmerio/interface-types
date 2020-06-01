@@ -162,6 +162,7 @@ where
         invocation_inputs: &[InterfaceValue],
         wasm_instance: &mut Instance,
     ) -> InterpreterResult<Stack<InterfaceValue>> {
+        println!("into interpreter run");
         let mut runtime = Runtime {
             invocation_inputs,
             stack: Stack::new(),
@@ -243,7 +244,9 @@ where
                 }
                 Instruction::RecordLower { type_index } => {
                     instructions::record_lower(*type_index, *instruction)
-                }
+                },
+                Instruction::Dup => instructions::dup(*instruction),
+                Instruction::Swap2 => instructions::swap2(*instruction),
             })
             .collect();
 
