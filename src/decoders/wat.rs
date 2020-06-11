@@ -2,6 +2,7 @@
 
 use crate::{ast::*, interpreter::Instruction, types::*, vec1::Vec1};
 pub use wast::parser::ParseBuffer as Buffer;
+pub use wast::Error;
 use wast::parser::{self, Cursor, Parse, Parser, Peek, Result};
 
 mod keyword {
