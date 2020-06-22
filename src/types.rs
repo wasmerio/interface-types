@@ -1,9 +1,10 @@
 //! This module defines the WIT types.
 
 use crate::vec1::Vec1;
+use serde::{Serialize, Deserialize};
 
 /// Represents the types supported by WIT.
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub enum InterfaceType {
     /// A 8-bits signed integer.
     S8,
@@ -52,7 +53,7 @@ pub enum InterfaceType {
 }
 
 /// Represents a record type.
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct RecordType {
     /// Types representing the fields.
     /// A record must have at least one field, hence the
