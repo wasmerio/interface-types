@@ -42,7 +42,7 @@ where
 pub(crate) type ExecutableInstruction<Instance, Export, LocalImport, Memory, MemoryView> = Box<
     dyn Fn(
         &mut Runtime<Instance, Export, LocalImport, Memory, MemoryView>,
-    ) -> InstructionResult<()>,
+    ) -> InstructionResult<()> + Send,
 >;
 
 /// An interpreter is the central piece of this crate. It is a set of
