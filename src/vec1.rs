@@ -9,7 +9,7 @@ use serde::{Serialize, Deserialize};
 
 /// `Vec1<T>` represents a non-empty `Vec<T>`. It derefs to `Vec<T>`
 /// directly.
-#[derive(Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct Vec1<T>(Vec<T>)
 where
     T: Debug;
