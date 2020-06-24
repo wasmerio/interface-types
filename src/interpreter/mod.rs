@@ -162,7 +162,6 @@ where
         invocation_inputs: &[InterfaceValue],
         wasm_instance: &mut Instance,
     ) -> InterpreterResult<Stack<InterfaceValue>> {
-        println!("into interpreter run");
         let mut runtime = Runtime {
             invocation_inputs,
             stack: Stack::new(),
