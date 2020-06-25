@@ -284,8 +284,14 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         todo!("`newtype_variant` is not supported by WIT for the moment.")
     }
 
-    fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
-        todo!("`seq` is not supported by WIT for the moment.")
+    fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
+        if let Some(len) = len {
+            self.push_with_capacity(len);
+
+            Ok(self)
+        } else {
+            todo!("`seq` without known size are not supported for the moment")
+        }
     }
 
     fn serialize_tuple(self, _len: usize) -> Result<Self::SerializeTuple, Self::Error> {
@@ -312,8 +318,14 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         todo!("`tuple_variant` is not supported by WIT for the moment.")
     }
 
-    fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        todo!("`map` is not supported by WIT for the moment.")
+    fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
+        if let Some(len) = len {
+            self.push_with_capacity(len);
+
+            Ok(self)
+        } else {
+            todo!("`map` without known size are not supported for the moment")
+        }
     }
 
     fn serialize_struct(
@@ -341,15 +353,20 @@ impl<'a> ser::SerializeSeq for &'a mut Serializer {
     type Ok = ();
     type Error = SerializeError;
 
-    fn serialize_element<T>(&mut self, _value: &T) -> Result<Self::Ok, Self::Error>
+    fn serialize_element<T>(&mut self, value: &T) -> Result<Self::Ok, Self::Error>
     where
         T: ?Sized + Serialize,
     {
-        unimplemented!()
+        value.serialize(&mut **self)
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        let record = InterfaceValue::Record(
+            Vec1::new(self.pop()?).map_err(|_| Self::Error::RecordNeedsAtLeastOneField)?,
+        );
+        self.last().push(record);
+
+        Ok(())
     }
 }
 
@@ -406,26 +423,27 @@ impl<'a> ser::SerializeTupleVariant for &'a mut Serializer {
     }
 }
 
-impl<'a> ser::SerializeMap for &'a mut Serializer {
+impl <'a> ser::SerializeMap for &'a mut Serializer {
     type Ok = ();
     type Error = SerializeError;
 
-    fn serialize_key<T>(&mut self, _key: &T) -> Result<Self::Ok, Self::Error>
-    where
-        T: ?Sized + Serialize,
-    {
-        unimplemented!()
+    fn serialize_key<T: ?Sized>(&mut self, _key: &T) -> Result<(), Self::Error> where
+        T: Serialize {
+        Ok(())
     }
 
-    fn serialize_value<T>(&mut self, _value: &T) -> Result<Self::Ok, Self::Error>
-    where
-        T: ?Sized + Serialize,
-    {
-        unimplemented!()
+    fn serialize_value<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error> where
+        T: Serialize {
+        value.serialize(&mut **self)
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        let record = InterfaceValue::Record(
+            Vec1::new(self.pop()?).map_err(|_| Self::Error::RecordNeedsAtLeastOneField)?,
+        );
+        self.last().push(record);
+
+        Ok(())
     }
 }
 
