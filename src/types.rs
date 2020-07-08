@@ -39,6 +39,9 @@ pub enum InterfaceType {
     /// A string.
     String,
 
+    /// A byte array.
+    ByteArray,
+
     /// An `any` reference.
     Anyref,
 

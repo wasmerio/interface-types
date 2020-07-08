@@ -46,6 +46,9 @@ pub enum InterfaceValue {
     /// A string.
     String(String),
 
+    /// A byte array.
+    ByteArray(Vec<u8>),
+
     //Anyref(?),
     /// A 32-bits integer (as defined in WebAssembly core).
     I32(i32),
@@ -71,6 +74,7 @@ impl From<&InterfaceValue> for InterfaceType {
             InterfaceValue::F32(_) => Self::F32,
             InterfaceValue::F64(_) => Self::F64,
             InterfaceValue::String(_) => Self::String,
+            InterfaceValue::ByteArray(_) => Self::ByteArray,
             //InterfaceValue::Anyref(_) => Self::Anyref,
             InterfaceValue::I32(_) => Self::I32,
             InterfaceValue::I64(_) => Self::I64,
@@ -139,6 +143,7 @@ native!(u64, U64);
 native!(f32, F32);
 native!(f64, F64);
 native!(String, String);
+native!(Vec<u8>, ByteArray);
 
 /// Iterates over a vector of `InterfaceValues` but flatten all the
 /// values. So `I32(1), Record([I32(2), I32(3)]), I32(4)` will be

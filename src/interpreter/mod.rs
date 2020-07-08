@@ -238,6 +238,10 @@ where
                 Instruction::StringLowerMemory => instructions::string_lower_memory(*instruction),
                 Instruction::StringSize => instructions::string_size(*instruction),
 
+                Instruction::ByteArrayLiftMemory => instructions::byte_array_lift_memory(*instruction),
+                Instruction::ByteArrayLowerMemory => instructions::byte_array_lower_memory(*instruction),
+                Instruction::ByteArraySize => instructions::byte_array_size(*instruction),
+
                 Instruction::RecordLift { type_index } => {
                     instructions::record_lift(*type_index, *instruction)
                 }

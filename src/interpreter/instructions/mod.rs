@@ -1,4 +1,5 @@
 mod argument_get;
+mod byte_arrays;
 mod call_core;
 mod numbers;
 mod records;
@@ -11,6 +12,7 @@ use crate::{
     values::{InterfaceValue, NativeType},
 };
 pub(crate) use argument_get::argument_get;
+pub(crate) use byte_arrays::*;
 pub(crate) use call_core::call_core;
 pub(crate) use numbers::*;
 pub(crate) use records::*;
@@ -138,6 +140,15 @@ pub enum Instruction {
 
     /// The `string.size` instruction.
     StringSize,
+
+    /// The `string.lift_memory` instruction.
+    ByteArrayLiftMemory,
+
+    /// The `string.lower_memory` instruction.
+    ByteArrayLowerMemory,
+
+    /// The `string.size` instruction.
+    ByteArraySize,
 
     /// The `record.lift` instruction.
     RecordLift {

@@ -27,6 +27,7 @@ mod keyword {
     custom_keyword!(u32);
     custom_keyword!(u64);
     custom_keyword!(string);
+    custom_keyword!(byte_array);
 
     // Instructions.
     custom_keyword!(argument_get = "arg.get");
@@ -66,6 +67,9 @@ mod keyword {
     custom_keyword!(string_lift_memory = "string.lift_memory");
     custom_keyword!(string_lower_memory = "string.lower_memory");
     custom_keyword!(string_size = "string.size");
+    custom_keyword!(byte_array_lift_memory = "byte_array.lift_memory");
+    custom_keyword!(byte_array_lower_memory = "byte_array.lower_memory");
+    custom_keyword!(byte_array_size = "byte_array.size");
     custom_keyword!(record_lift = "record.lift");
     custom_keyword!(record_lower = "record.lower");
     custom_keyword!(dup = "dup");
@@ -120,6 +124,10 @@ impl Parse<'_> for InterfaceType {
             parser.parse::<keyword::string>()?;
 
             Ok(InterfaceType::String)
+        } else if lookahead.peek::<keyword::byte_array>() {
+            parser.parse::<keyword::byte_array>()?;
+
+            Ok(InterfaceType::ByteArray)
         } else if lookahead.peek::<keyword::anyref>() {
             parser.parse::<keyword::anyref>()?;
 

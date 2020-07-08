@@ -92,6 +92,7 @@ fn ty<'input, E: ParseError<&'input [u8]>>(
         0x08 => InterfaceType::F32,
         0x09 => InterfaceType::F64,
         0x0a => InterfaceType::String,
+        0x36 => InterfaceType::ByteArray,
         0x0b => InterfaceType::Anyref,
         0x0c => InterfaceType::I32,
         0x0d => InterfaceType::I64,
@@ -234,6 +235,10 @@ fn instruction<'input, E: ParseError<&'input [u8]>>(
         0x22 => (input, Instruction::StringLiftMemory),
         0x23 => (input, Instruction::StringLowerMemory),
         0x24 => (input, Instruction::StringSize),
+
+        0x37 => (input, Instruction::ByteArrayLiftMemory),
+        0x38 => (input, Instruction::ByteArrayLowerMemory),
+        0x39 => (input, Instruction::ByteArraySize),
 
         0x25 => {
             consume!((input, argument_0) = uleb(input)?);
