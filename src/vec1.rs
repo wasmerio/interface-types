@@ -9,7 +9,7 @@ use serde::{Serialize, Deserialize};
 
 /// `Vec1<T>` represents a non-empty `Vec<T>`. It derefs to `Vec<T>`
 /// directly.
-#[derive(Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Vec1<T>(Vec<T>)
 where
     T: Debug;
@@ -39,6 +39,11 @@ where
         } else {
             Ok(Self(items))
         }
+    }
+
+    /// Converts this Vec1 into Vec
+    pub fn into_vec(self) -> Vec<T> {
+        self.0
     }
 }
 
