@@ -73,7 +73,7 @@ impl ToString for &InterfaceType {
             InterfaceType::F32 => "f32".to_string(),
             InterfaceType::F64 => "f64".to_string(),
             InterfaceType::String => "string".to_string(),
-            InterfaceType::ByteArray => "byteArray".to_string(),
+            InterfaceType::ByteArray => "byte_array".to_string(),
             InterfaceType::Anyref => "anyref".to_string(),
             InterfaceType::I32 => "i32".to_string(),
             InterfaceType::I64 => "i64".to_string(),
