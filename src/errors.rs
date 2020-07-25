@@ -171,6 +171,9 @@ pub enum InstructionErrorKind {
         /// The received kind.
         received_kind: TypeKind,
     },
+
+    /// Errors related to Serialization/deserialization of record.
+    SerdeError(String),
 }
 
 impl Error for InstructionErrorKind {}
@@ -257,6 +260,10 @@ impl Display for InstructionErrorKind {
                 formatter,
                 "read a type of kind `{:?}`, but the kind `{:?}` was expected",
                 received_kind, expected_kind
+            ),
+            Self::SerdeError(err) => write!(
+                formatter,
+                "serde error: {}", err,
             ),
         }
     }

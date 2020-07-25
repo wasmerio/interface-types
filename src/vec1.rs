@@ -1,16 +1,16 @@
 //! `Vec1<T>` represents a non-empty `Vec<T>`.
 
+use serde::{Deserialize, Serialize};
 use std::{
     error,
     fmt::{self, Debug},
     ops,
 };
-use serde::{Serialize, Deserialize};
 
 /// `Vec1<T>` represents a non-empty `Vec<T>`. It derefs to `Vec<T>`
 /// directly.
 #[derive(Clone, PartialEq, Serialize, Deserialize, Default)]
-pub struct Vec1<T>(Vec<T>)
+pub struct Vec1<T>(pub(crate) Vec<T>)
 where
     T: Debug;
 

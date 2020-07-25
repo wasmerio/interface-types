@@ -261,6 +261,27 @@ fn instruction<'input, E: ParseError<&'input [u8]>>(
             )
         }
 
+        0x3A => {
+            consume!((input, argument_0) = uleb(input)?);
+
+            (
+                input,
+                Instruction::RecordLiftMemory {
+                    type_index: argument_0 as u32,
+                },
+            )
+        }
+        0x3B => {
+            consume!((input, argument_0) = uleb(input)?);
+
+            (
+                input,
+                Instruction::RecordLowerMemory {
+                    type_index: argument_0 as u32,
+                },
+            )
+        }
+
         0x34 => (input, Instruction::Dup),
 
         0x35 => (input, Instruction::Swap2),

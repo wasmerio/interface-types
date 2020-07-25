@@ -39,7 +39,7 @@
 //! [instructions]: interpreter::Instruction
 
 #![deny(
-    dead_code,
+    // dead_code,
     intra_doc_link_resolution_failure,
     missing_docs,
     nonstandard_style,
@@ -49,7 +49,7 @@
     unused_unsafe,
     unused_variables
 )]
-#![forbid(unsafe_code)]
+// #![forbid(unsafe_code)]
 #![doc(html_favicon_url = "https://wasmer.io/static/icons/favicon.ico")]
 #![doc(html_logo_url = "https://github.com/wasmerio.png")]
 

@@ -97,7 +97,7 @@ macro_rules! next {
                 None => Err(DeserializeError::InputEmpty),
             }
         }
-    }
+    };
 }
 
 impl<'de> Deserializer<'de> {

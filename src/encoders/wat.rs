@@ -144,6 +144,12 @@ impl ToString for &Instruction {
             Instruction::ByteArraySize => "byte_array.size".into(),
             Instruction::RecordLift { type_index } => format!("record.lift {}", type_index),
             Instruction::RecordLower { type_index } => format!("record.lower {}", type_index),
+            Instruction::RecordLiftMemory { type_index } => {
+                format!("record.lift_memory {}", type_index)
+            }
+            Instruction::RecordLowerMemory { type_index } => {
+                format!("record.lower_memory {}", type_index)
+            }
             Instruction::Dup => "dup".into(),
             Instruction::Swap2 => "swap2".into(),
         }

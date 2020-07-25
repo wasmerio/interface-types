@@ -347,6 +347,14 @@ where
                 0x26_u8.to_bytes(writer)?;
                 (*type_index as u64).to_bytes(writer)?
             }
+            Instruction::RecordLiftMemory { type_index } => {
+                0x3A_u8.to_bytes(writer)?;
+                (*type_index as u64).to_bytes(writer)?
+            }
+            Instruction::RecordLowerMemory { type_index } => {
+                0x3B_u8.to_bytes(writer)?;
+                (*type_index as u64).to_bytes(writer)?
+            }
             Instruction::Dup => 0x34_u8.to_bytes(writer)?,
             Instruction::Swap2 => 0x35_u8.to_bytes(writer)?,
         }

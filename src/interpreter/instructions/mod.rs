@@ -1,10 +1,10 @@
 mod argument_get;
 mod byte_arrays;
 mod call_core;
+mod dup;
 mod numbers;
 mod records;
 mod strings;
-mod dup;
 mod swap2;
 
 use crate::{
@@ -14,12 +14,15 @@ use crate::{
 pub(crate) use argument_get::argument_get;
 pub(crate) use byte_arrays::*;
 pub(crate) use call_core::call_core;
+pub(crate) use dup::dup;
 pub(crate) use numbers::*;
 pub(crate) use records::*;
 use std::convert::TryFrom;
 pub(crate) use strings::*;
-pub(crate) use dup::dup;
 pub(crate) use swap2::swap2;
+
+pub(self) const ALLOCATE_FUNC_INDEX: u32 = 0;
+pub(self) const DEALLOCATE_FUNC_INDEX: u32 = 1;
 
 /// Represents all the possible WIT instructions.
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -141,10 +144,10 @@ pub enum Instruction {
     /// The `string.size` instruction.
     StringSize,
 
-    /// The `string.lift_memory` instruction.
+    /// The `byte_array.lift_memory` instruction.
     ByteArrayLiftMemory,
 
-    /// The `string.lower_memory` instruction.
+    /// The `byte_array.lower_memory` instruction.
     ByteArrayLowerMemory,
 
     /// The `string.size` instruction.
@@ -158,6 +161,18 @@ pub enum Instruction {
 
     /// The `record.lower` instruction.
     RecordLower {
+        /// The type index of the record.
+        type_index: u32,
+    },
+
+    /// The `record.lift_memory` instruction.
+    RecordLiftMemory {
+        /// The type index of the record.
+        type_index: u32,
+    },
+
+    /// The `record.lower_memory` instruction.
+    RecordLowerMemory {
         /// The type index of the record.
         type_index: u32,
     },
