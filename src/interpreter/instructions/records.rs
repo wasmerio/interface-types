@@ -129,7 +129,7 @@ where
         safe_transmute::transmute_many::<u64, safe_transmute::SingleManyGuard>(&data).unwrap();
 
     let mut field_id = 0;
-    for field in record_type.fields.0 {
+    for field in record_type.fields.into_vec() {
         let value = data[field_id];
         match field {
             InterfaceType::S8 => {
@@ -292,7 +292,7 @@ where
 {
     let mut result: Vec<u64> = Vec::with_capacity(values.len());
 
-    for value in values.0 {
+    for value in values.into_vec() {
         match value {
             InterfaceValue::S8(value) => result.push(value as _),
             InterfaceValue::S16(value) => result.push(value as _),
