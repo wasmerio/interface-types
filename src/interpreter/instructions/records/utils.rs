@@ -53,7 +53,7 @@ where
     MemoryView: wasm::structures::MemoryView,
     Instance: wasm::structures::Instance<Export, LocalImport, Memory, MemoryView>,
 {
-    let mem_pointer = allocate(instance, instruction.clone(), bytes.len() as _)?;
+    let mem_pointer = allocate(instance, instruction, bytes.len() as _)?;
 
     let memory_index: u32 = 0;
     let memory_view = instance
@@ -88,7 +88,7 @@ where
     let values = call_core(
         instance,
         ALLOCATE_FUNC_INDEX,
-        instruction.clone(),
+        instruction,
         vec![InterfaceValue::I32(size)],
     )?;
     if values.len() != 1 {
@@ -101,7 +101,7 @@ where
             },
         ));
     }
-    to_native::<i32>(&values[0], instruction.clone())
+    to_native::<i32>(&values[0], instruction)
 }
 
 pub(super) fn deallocate<'instance, Instance, Export, LocalImport, Memory, MemoryView>(
@@ -120,7 +120,7 @@ where
     let _ = call_core(
         instance,
         DEALLOCATE_FUNC_INDEX,
-        instruction.clone(),
+        instruction,
         vec![InterfaceValue::I32(mem_ptr), InterfaceValue::I32(size)],
     )?;
 

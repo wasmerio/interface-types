@@ -15,7 +15,7 @@ executable_instruction!(
                 InstructionError::new(
                     instruction,
                     InstructionErrorKind::LocalOrImportIsMissing {
-                        function_index: function_index,
+                        function_index,
                     },
                 )
             })?;
@@ -38,7 +38,7 @@ executable_instruction!(
                 return Err(InstructionError::new(
                     instruction,
                     InstructionErrorKind::LocalOrImportSignatureMismatch {
-                        function_index: function_index,
+                        function_index,
                         expected: (local_or_import.inputs().to_vec(), vec![]),
                         received: (input_types, vec![]),
                     },
@@ -49,7 +49,7 @@ executable_instruction!(
                 InstructionError::new(
                     instruction,
                     InstructionErrorKind::LocalOrImportCall {
-                        function_index: function_index,
+                        function_index,
                     },
                 )
             })?;

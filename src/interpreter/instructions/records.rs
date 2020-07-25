@@ -165,11 +165,7 @@ where
             InterfaceType::F32 => {
                 values.push_front(InterfaceValue::F32(value as _));
             }
-            InterfaceType::F64 => {
-                unsafe {
-                    values.push_front(InterfaceValue::F64(std::mem::transmute::<u64, f64>(value)))
-                };
-            }
+            InterfaceType::F64 => values.push_front(InterfaceValue::F64(f64::from_bits(value))),
             InterfaceType::Anyref => {}
             InterfaceType::String => {
                 let offset = value;
@@ -305,19 +301,16 @@ where
             InterfaceValue::I32(value) => result.push(value as _),
             InterfaceValue::I64(value) => result.push(value as _),
             InterfaceValue::F32(value) => result.push(value as _),
-            InterfaceValue::F64(value) => {
-                result.push(unsafe { std::mem::transmute::<f64, u64>(value) })
-            }
+            InterfaceValue::F64(value) => result.push(value.to_bits()),
             InterfaceValue::String(value) => {
                 let string_pointer =
-                    write_to_instance_mem(instance, instruction.clone(), value.as_bytes())?;
+                    write_to_instance_mem(instance, instruction, value.as_bytes())?;
                 result.push(string_pointer as _);
                 result.push(value.len() as _);
             }
 
             InterfaceValue::ByteArray(value) => {
-                let byte_array_pointer =
-                    write_to_instance_mem(instance, instruction.clone(), &value)?;
+                let byte_array_pointer = write_to_instance_mem(instance, instruction, &value)?;
                 result.push(byte_array_pointer as _);
                 result.push(value.len() as _);
             }
@@ -333,7 +326,7 @@ where
     }
 
     let result = safe_transmute::transmute_to_bytes::<u64>(&result);
-    let result_pointer = write_to_instance_mem(instance, instruction.clone(), &result)?;
+    let result_pointer = write_to_instance_mem(instance, instruction, &result)?;
 
     Ok((result_pointer, result.len() as _))
 }
