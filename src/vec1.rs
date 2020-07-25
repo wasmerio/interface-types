@@ -40,6 +40,11 @@ where
             Ok(Self(items))
         }
     }
+
+    /// Converts this Vec1 into Vec
+    pub fn into_vec(self) -> Vec<T> {
+        self.0
+    }
 }
 
 impl<T> fmt::Debug for Vec1<T>
