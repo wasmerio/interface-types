@@ -110,7 +110,6 @@ fn record_lift_memory_<'instance, Instance, Export, LocalImport, Memory, MemoryV
     instance: &'instance mut Instance,
     record_type: RecordType,
     offset: usize,
-    size: usize,
     instruction: Instruction,
 ) -> Result<InterfaceValue, InstructionError>
 where
@@ -121,8 +120,24 @@ where
     Instance: crate::interpreter::wasm::structures::Instance<Export, LocalImport, Memory, MemoryView>
         + 'instance,
 {
+    fn record_size(record_type: &RecordType) -> usize {
+        let mut record_size = 0;
+
+        for ty in record_type.fields.iter() {
+            let params_count = match ty {
+                InterfaceType::String | InterfaceType::ByteArray => 2,
+                _ => 1,
+            };
+
+            record_size += std::mem::size_of::<u64>() * params_count;
+        }
+
+        record_size
+    }
+
     let length = record_type.fields.len();
     let mut values = VecDeque::with_capacity(length);
+    let size = record_size(&record_type);
     let data = read_from_instance_mem(instance, instruction, offset, size)?;
     // TODO: add error handling
     let data =
@@ -193,14 +208,11 @@ where
             }
             InterfaceType::Record(record_type) => {
                 let offset = value;
-                field_id += 1;
-                let size = data[field_id];
 
                 values.push_front(record_lift_memory_(
                     instance,
                     record_type,
                     offset as _,
-                    size as _,
                     instruction,
                 )?)
             }
@@ -229,20 +241,16 @@ where
     use crate::interpreter::stack::Stackable;
     Box::new({
         move |runtime| -> _ {
-            let inputs = runtime.stack.pop(2).ok_or_else(|| {
+            let inputs = runtime.stack.pop(1).ok_or_else(|| {
                 InstructionError::new(
                     instruction,
-                    InstructionErrorKind::StackIsTooSmall { needed: 2 },
+                    InstructionErrorKind::StackIsTooSmall { needed: 1 },
                 )
             })?;
 
             let offset: usize = to_native::<i32>(&inputs[0], instruction)?
                 .try_into()
                 .map_err(|e| (e, "offset").into())
-                .map_err(|k| InstructionError::new(instruction, k))?;
-            let size: usize = to_native::<i32>(&inputs[1], instruction)?
-                .try_into()
-                .map_err(|e| (e, "size").into())
                 .map_err(|k| InstructionError::new(instruction, k))?;
 
             // TODO: size = 0
@@ -265,7 +273,7 @@ where
                 }
             };
 
-            let record = record_lift_memory_(*instance, record_type, offset, size, instruction)?;
+            let record = record_lift_memory_(*instance, record_type, offset, instruction)?;
             runtime.stack.push(record);
 
             Ok(())
@@ -277,7 +285,7 @@ fn record_lower_memory_<Instance, Export, LocalImport, Memory, MemoryView>(
     instance: &mut Instance,
     instruction: Instruction,
     values: Vec1<InterfaceValue>,
-) -> Result<(i32, i32), InstructionError>
+) -> Result<i32, InstructionError>
 where
     Export: crate::interpreter::wasm::structures::Export,
     LocalImport: crate::interpreter::wasm::structures::LocalImport,
@@ -316,11 +324,9 @@ where
             }
 
             InterfaceValue::Record(record) => {
-                let (record_ptr, record_size) =
-                    record_lower_memory_(instance, instruction, record)?;
+                let record_ptr = record_lower_memory_(instance, instruction, record)?;
 
                 result.push(record_ptr as _);
-                result.push(record_size as _);
             }
         }
     }
@@ -328,7 +334,7 @@ where
     let result = safe_transmute::transmute_to_bytes::<u64>(&result);
     let result_pointer = write_to_instance_mem(instance, instruction, &result)?;
 
-    Ok((result_pointer, result.len() as _))
+    Ok(result_pointer)
 }
 
 pub(crate) fn record_lower_memory<Instance, Export, LocalImport, Memory, MemoryView>(
@@ -382,10 +388,9 @@ where
                     runtime.stack.push(InterfaceValue::I32(value_pointer));
                     runtime.stack.push(InterfaceValue::I32(value.len() as _));
                      */
-                    let (offset, size) =
+                    let offset =
                         record_lower_memory_(*instance, instruction, record_values)?;
                     runtime.stack.push(InterfaceValue::I32(offset));
-                    runtime.stack.push(InterfaceValue::I32(size));
 
                     Ok(())
                 }
