@@ -8,7 +8,7 @@ use crate::{
 use std::str;
 
 /// Represents the kind of type.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum TypeKind {
     /// A function type.
     Function,
@@ -18,7 +18,7 @@ pub enum TypeKind {
 }
 
 /// Represents a type.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Type {
     /// A function type, like:
     ///

@@ -388,8 +388,7 @@ where
                     runtime.stack.push(InterfaceValue::I32(value_pointer));
                     runtime.stack.push(InterfaceValue::I32(value.len() as _));
                      */
-                    let offset =
-                        record_lower_memory_(*instance, instruction, record_values)?;
+                    let offset = record_lower_memory_(*instance, instruction, record_values)?;
                     runtime.stack.push(InterfaceValue::I32(offset));
 
                     Ok(())
