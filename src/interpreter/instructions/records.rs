@@ -187,24 +187,31 @@ where
                 field_id += 1;
                 let size = data[field_id];
 
-                let string_mem =
-                    read_from_instance_mem(instance, instruction, offset as _, size as _)?;
-                // TODO: check
-                let string = String::from_utf8(string_mem).unwrap();
+                if size != 0 {
+                    let string_mem =
+                        read_from_instance_mem(instance, instruction, offset as _, size as _)?;
+                    // TODO: check
+                    let string = String::from_utf8(string_mem).unwrap();
+                    values.push_front(InterfaceValue::String(string));
 
-                utils::deallocate(instance, instruction, offset as _, size as _)?;
-
-                values.push_front(InterfaceValue::String(string));
+                    utils::deallocate(instance, instruction, offset as _, size as _)?;
+                } else {
+                    values.push_front(InterfaceValue::String("".to_string()));
+                }
             }
             InterfaceType::ByteArray => {
                 let offset = value;
                 field_id += 1;
                 let size = data[field_id];
 
-                let byte_array =
-                    read_from_instance_mem(instance, instruction, offset as _, size as _)?;
+                if size != 0 {
+                    let byte_array =
+                        read_from_instance_mem(instance, instruction, offset as _, size as _)?;
 
-                values.push_front(InterfaceValue::ByteArray(byte_array));
+                    values.push_front(InterfaceValue::ByteArray(byte_array));
+                } else {
+                    values.push_front(InterfaceValue::ByteArray(vec![]));
+                }
             }
             InterfaceType::Record(record_type) => {
                 let offset = value;
