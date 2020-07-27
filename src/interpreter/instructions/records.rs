@@ -332,7 +332,7 @@ where
             InterfaceValue::F32(value) => result.push(value as _),
             InterfaceValue::F64(value) => result.push(value.to_bits()),
             InterfaceValue::String(value) => {
-                let string_pointer = if value.is_empty() {
+                let string_pointer = if !value.is_empty() {
                     write_to_instance_mem(instance, instruction, value.as_bytes())?
                 } else {
                     0i32
@@ -343,7 +343,7 @@ where
             }
 
             InterfaceValue::ByteArray(value) => {
-                let byte_array_pointer = if value.is_empty() {
+                let byte_array_pointer = if !value.is_empty() {
                     write_to_instance_mem(instance, instruction, &value)?
                 } else {
                     0i32
