@@ -40,9 +40,8 @@ where
 /// Type alias for an executable instruction. It's an implementation
 /// details, but an instruction is a boxed closure instance.
 pub(crate) type ExecutableInstruction<Instance, Export, LocalImport, Memory, MemoryView> = Box<
-    dyn Fn(
-        &mut Runtime<Instance, Export, LocalImport, Memory, MemoryView>,
-    ) -> InstructionResult<()> + Send,
+    dyn Fn(&mut Runtime<Instance, Export, LocalImport, Memory, MemoryView>) -> InstructionResult<()>
+        + Send,
 >;
 
 /// An interpreter is the central piece of this crate. It is a set of
@@ -238,12 +237,27 @@ where
                 Instruction::StringLowerMemory => instructions::string_lower_memory(*instruction),
                 Instruction::StringSize => instructions::string_size(*instruction),
 
+                Instruction::ByteArrayLiftMemory => {
+                    instructions::byte_array_lift_memory(*instruction)
+                }
+                Instruction::ByteArrayLowerMemory => {
+                    instructions::byte_array_lower_memory(*instruction)
+                }
+                Instruction::ByteArraySize => instructions::byte_array_size(*instruction),
+
                 Instruction::RecordLift { type_index } => {
                     instructions::record_lift(*type_index, *instruction)
                 }
                 Instruction::RecordLower { type_index } => {
                     instructions::record_lower(*type_index, *instruction)
-                },
+                }
+
+                Instruction::RecordLiftMemory { type_index } => {
+                    instructions::record_lift_memory(*type_index, *instruction)
+                }
+                Instruction::RecordLowerMemory { type_index } => {
+                    instructions::record_lower_memory(*type_index, *instruction)
+                }
                 Instruction::Dup => instructions::dup(*instruction),
                 Instruction::Swap2 => instructions::swap2(*instruction),
             })

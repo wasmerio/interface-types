@@ -1,7 +1,7 @@
 //! This module defines the WIT types.
 
 use crate::vec1::Vec1;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// Represents the types supported by WIT.
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
@@ -38,6 +38,9 @@ pub enum InterfaceType {
 
     /// A string.
     String,
+
+    /// A byte array.
+    ByteArray,
 
     /// An `any` reference.
     Anyref,

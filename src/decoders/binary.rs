@@ -92,6 +92,7 @@ fn ty<'input, E: ParseError<&'input [u8]>>(
         0x08 => InterfaceType::F32,
         0x09 => InterfaceType::F64,
         0x0a => InterfaceType::String,
+        0x36 => InterfaceType::ByteArray,
         0x0b => InterfaceType::Anyref,
         0x0c => InterfaceType::I32,
         0x0d => InterfaceType::I64,
@@ -235,6 +236,10 @@ fn instruction<'input, E: ParseError<&'input [u8]>>(
         0x23 => (input, Instruction::StringLowerMemory),
         0x24 => (input, Instruction::StringSize),
 
+        0x37 => (input, Instruction::ByteArrayLiftMemory),
+        0x38 => (input, Instruction::ByteArrayLowerMemory),
+        0x39 => (input, Instruction::ByteArraySize),
+
         0x25 => {
             consume!((input, argument_0) = uleb(input)?);
 
@@ -251,6 +256,27 @@ fn instruction<'input, E: ParseError<&'input [u8]>>(
             (
                 input,
                 Instruction::RecordLower {
+                    type_index: argument_0 as u32,
+                },
+            )
+        }
+
+        0x3A => {
+            consume!((input, argument_0) = uleb(input)?);
+
+            (
+                input,
+                Instruction::RecordLiftMemory {
+                    type_index: argument_0 as u32,
+                },
+            )
+        }
+        0x3B => {
+            consume!((input, argument_0) = uleb(input)?);
+
+            (
+                input,
+                Instruction::RecordLowerMemory {
                     type_index: argument_0 as u32,
                 },
             )

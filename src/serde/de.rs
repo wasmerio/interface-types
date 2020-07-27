@@ -97,7 +97,7 @@ macro_rules! next {
                 None => Err(DeserializeError::InputEmpty),
             }
         }
-    }
+    };
 }
 
 impl<'de> Deserializer<'de> {
@@ -122,6 +122,23 @@ impl<'de> Deserializer<'de> {
 
             Some(wrong_value) => Err(DeserializeError::TypeMismatch {
                 expected_type: InterfaceType::String,
+                received_type: (*wrong_value).into(),
+            }),
+
+            None => Err(DeserializeError::InputEmpty),
+        }
+    }
+
+    fn next_byte_array(&mut self) -> Result<&'de [u8], DeserializeError> {
+        match self.iterator.peek() {
+            Some(InterfaceValue::ByteArray(v)) => {
+                self.iterator.next();
+
+                Ok(v)
+            }
+
+            Some(wrong_value) => Err(DeserializeError::TypeMismatch {
+                expected_type: InterfaceType::ByteArray,
                 received_type: (*wrong_value).into(),
             }),
 
@@ -200,6 +217,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             Some(InterfaceValue::F32(_)) => self.deserialize_f32(visitor),
             Some(InterfaceValue::F64(_)) => self.deserialize_f64(visitor),
             Some(InterfaceValue::String(_)) => self.deserialize_string(visitor),
+            Some(InterfaceValue::ByteArray(_)) => self.deserialize_bytes(visitor),
             Some(InterfaceValue::I32(_)) => self.deserialize_i32(visitor),
             Some(InterfaceValue::I64(_)) => self.deserialize_i64(visitor),
             Some(InterfaceValue::Record(_)) => unreachable!("Records should have been flattened."), // already flattened
@@ -309,11 +327,11 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         self.deserialize_str(visitor)
     }
 
-    fn deserialize_bytes<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: de::Visitor<'de>,
     {
-        todo!("`bytes` is not supported by WIT for the moment.")
+        visitor.visit_bytes(self.next_byte_array()?)
     }
 
     fn deserialize_byte_buf<V>(self, _visitor: V) -> Result<V::Value, Self::Error>

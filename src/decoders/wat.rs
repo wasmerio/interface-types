@@ -2,8 +2,8 @@
 
 use crate::{ast::*, interpreter::Instruction, types::*, vec1::Vec1};
 pub use wast::parser::ParseBuffer as Buffer;
-pub use wast::Error;
 use wast::parser::{self, Cursor, Parse, Parser, Peek, Result};
+pub use wast::Error;
 
 mod keyword {
     pub use wast::{
@@ -27,6 +27,7 @@ mod keyword {
     custom_keyword!(u32);
     custom_keyword!(u64);
     custom_keyword!(string);
+    custom_keyword!(byte_array);
 
     // Instructions.
     custom_keyword!(argument_get = "arg.get");
@@ -66,8 +67,13 @@ mod keyword {
     custom_keyword!(string_lift_memory = "string.lift_memory");
     custom_keyword!(string_lower_memory = "string.lower_memory");
     custom_keyword!(string_size = "string.size");
+    custom_keyword!(byte_array_lift_memory = "byte_array.lift_memory");
+    custom_keyword!(byte_array_lower_memory = "byte_array.lower_memory");
+    custom_keyword!(byte_array_size = "byte_array.size");
     custom_keyword!(record_lift = "record.lift");
     custom_keyword!(record_lower = "record.lower");
+    custom_keyword!(record_lift_memory = "record.lift_memory");
+    custom_keyword!(record_lower_memory = "record.lower_memory");
     custom_keyword!(dup = "dup");
     custom_keyword!(swap2 = "swap2");
 }
@@ -120,6 +126,10 @@ impl Parse<'_> for InterfaceType {
             parser.parse::<keyword::string>()?;
 
             Ok(InterfaceType::String)
+        } else if lookahead.peek::<keyword::byte_array>() {
+            parser.parse::<keyword::byte_array>()?;
+
+            Ok(InterfaceType::ByteArray)
         } else if lookahead.peek::<keyword::anyref>() {
             parser.parse::<keyword::anyref>()?;
 
@@ -317,6 +327,18 @@ impl<'a> Parse<'a> for Instruction {
             parser.parse::<keyword::string_size>()?;
 
             Ok(Instruction::StringSize)
+        } else if lookahead.peek::<keyword::byte_array_lift_memory>() {
+            parser.parse::<keyword::byte_array_lift_memory>()?;
+
+            Ok(Instruction::ByteArrayLiftMemory)
+        } else if lookahead.peek::<keyword::byte_array_lower_memory>() {
+            parser.parse::<keyword::byte_array_lower_memory>()?;
+
+            Ok(Instruction::ByteArrayLowerMemory)
+        } else if lookahead.peek::<keyword::byte_array_size>() {
+            parser.parse::<keyword::byte_array_size>()?;
+
+            Ok(Instruction::ByteArraySize)
         } else if lookahead.peek::<keyword::record_lift>() {
             parser.parse::<keyword::record_lift>()?;
 
@@ -327,6 +349,18 @@ impl<'a> Parse<'a> for Instruction {
             parser.parse::<keyword::record_lower>()?;
 
             Ok(Instruction::RecordLower {
+                type_index: parser.parse()?,
+            })
+        } else if lookahead.peek::<keyword::record_lift_memory>() {
+            parser.parse::<keyword::record_lift_memory>()?;
+
+            Ok(Instruction::RecordLiftMemory {
+                type_index: parser.parse()?,
+            })
+        } else if lookahead.peek::<keyword::record_lower_memory>() {
+            parser.parse::<keyword::record_lower_memory>()?;
+
+            Ok(Instruction::RecordLowerMemory {
                 type_index: parser.parse()?,
             })
         } else if lookahead.peek::<keyword::dup>() {
