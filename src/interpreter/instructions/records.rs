@@ -148,75 +148,86 @@ where
         let value = data[field_id];
         match field {
             InterfaceType::S8 => {
-                values.push_front(InterfaceValue::S8(value as _));
+                values.push_back(InterfaceValue::S8(value as _));
             }
             InterfaceType::S16 => {
-                values.push_front(InterfaceValue::S16(value as _));
+                values.push_back(InterfaceValue::S16(value as _));
             }
             InterfaceType::S32 => {
-                values.push_front(InterfaceValue::S32(value as _));
+                values.push_back(InterfaceValue::S32(value as _));
             }
             InterfaceType::S64 => {
-                values.push_front(InterfaceValue::S64(value as _));
+                values.push_back(InterfaceValue::S64(value as _));
             }
             InterfaceType::I32 => {
-                values.push_front(InterfaceValue::I32(value as _));
+                values.push_back(InterfaceValue::I32(value as _));
             }
             InterfaceType::I64 => {
-                values.push_front(InterfaceValue::I64(value as _));
+                values.push_back(InterfaceValue::I64(value as _));
             }
             InterfaceType::U8 => {
-                values.push_front(InterfaceValue::U8(value as _));
+                values.push_back(InterfaceValue::U8(value as _));
             }
             InterfaceType::U16 => {
-                values.push_front(InterfaceValue::U16(value as _));
+                values.push_back(InterfaceValue::U16(value as _));
             }
             InterfaceType::U32 => {
-                values.push_front(InterfaceValue::U32(value as _));
+                values.push_back(InterfaceValue::U32(value as _));
             }
             InterfaceType::U64 => {
-                values.push_front(InterfaceValue::U64(value as _));
+                values.push_back(InterfaceValue::U64(value as _));
             }
             InterfaceType::F32 => {
-                values.push_front(InterfaceValue::F32(value as _));
+                values.push_back(InterfaceValue::F32(value as _));
             }
-            InterfaceType::F64 => values.push_front(InterfaceValue::F64(f64::from_bits(value))),
+            InterfaceType::F64 => values.push_back(InterfaceValue::F64(f64::from_bits(value))),
             InterfaceType::Anyref => {}
             InterfaceType::String => {
-                let offset = value;
+                let string_offset = value;
                 field_id += 1;
-                let size = data[field_id];
+                let string_size = data[field_id];
 
-                if size != 0 {
-                    let string_mem =
-                        read_from_instance_mem(instance, instruction, offset as _, size as _)?;
+                if string_size != 0 {
+                    let string_mem = read_from_instance_mem(
+                        instance,
+                        instruction,
+                        string_offset as _,
+                        string_size as _,
+                    )?;
+
                     // TODO: check
                     let string = String::from_utf8(string_mem).unwrap();
-                    values.push_front(InterfaceValue::String(string));
+                    values.push_back(InterfaceValue::String(string));
 
-                    utils::deallocate(instance, instruction, offset as _, size as _)?;
+                    utils::deallocate(instance, instruction, string_offset as _, string_size as _)?;
                 } else {
-                    values.push_front(InterfaceValue::String("".to_string()));
+                    values.push_back(InterfaceValue::String("".to_string()));
                 }
             }
             InterfaceType::ByteArray => {
-                let offset = value;
+                let array_offset = value;
                 field_id += 1;
-                let size = data[field_id];
+                let array_size = data[field_id];
 
-                if size != 0 {
-                    let byte_array =
-                        read_from_instance_mem(instance, instruction, offset as _, size as _)?;
+                if array_size != 0 {
+                    let byte_array = read_from_instance_mem(
+                        instance,
+                        instruction,
+                        array_offset as _,
+                        array_size as _,
+                    )?;
 
-                    values.push_front(InterfaceValue::ByteArray(byte_array));
+                    values.push_back(InterfaceValue::ByteArray(byte_array));
+
+                    utils::deallocate(instance, instruction, array_offset as _, array_size as _)?;
                 } else {
-                    values.push_front(InterfaceValue::ByteArray(vec![]));
+                    values.push_back(InterfaceValue::ByteArray(vec![]));
                 }
             }
             InterfaceType::Record(record_type) => {
                 let offset = value;
 
-                values.push_front(record_lift_memory_(
+                values.push_back(record_lift_memory_(
                     instance,
                     record_type,
                     offset as _,
@@ -226,6 +237,9 @@ where
         }
         field_id += 1;
     }
+
+    utils::deallocate(instance, instruction, offset as _, size as _)?;
+
     Ok(InterfaceValue::Record(
         Vec1::new(values.into_iter().collect())
             .expect("Record must have at least one field, zero given"),
@@ -318,14 +332,23 @@ where
             InterfaceValue::F32(value) => result.push(value as _),
             InterfaceValue::F64(value) => result.push(value.to_bits()),
             InterfaceValue::String(value) => {
-                let string_pointer =
-                    write_to_instance_mem(instance, instruction, value.as_bytes())?;
+                let string_pointer = if value.is_empty() {
+                    write_to_instance_mem(instance, instruction, value.as_bytes())?
+                } else {
+                    0i32
+                };
+
                 result.push(string_pointer as _);
                 result.push(value.len() as _);
             }
 
             InterfaceValue::ByteArray(value) => {
-                let byte_array_pointer = write_to_instance_mem(instance, instruction, &value)?;
+                let byte_array_pointer = if value.is_empty() {
+                    write_to_instance_mem(instance, instruction, &value)?
+                } else {
+                    0i32
+                };
+
                 result.push(byte_array_pointer as _);
                 result.push(value.len() as _);
             }
@@ -338,9 +361,7 @@ where
         }
     }
 
-    println!("  before transmuting: {:?}", result);
     let result = safe_transmute::transmute_to_bytes::<u64>(&result);
-    println!("  after transmuting: {:?}", result);
     let result_pointer = write_to_instance_mem(instance, instruction, &result)?;
 
     Ok(result_pointer)
