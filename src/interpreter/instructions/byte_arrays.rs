@@ -39,7 +39,7 @@ executable_instruction!(
             let memory_view = memory.view();
 
             if length == 0 {
-                runtime.stack.push(InterfaceValue::String("".into()));
+                runtime.stack.push(InterfaceValue::ByteArray(vec![]));
 
                 return Ok(())
             }

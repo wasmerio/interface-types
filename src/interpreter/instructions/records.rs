@@ -331,7 +331,9 @@ where
         }
     }
 
+    println!("  before transmuting: {:?}", result);
     let result = safe_transmute::transmute_to_bytes::<u64>(&result);
+    println!("  after transmuting: {:?}", result);
     let result_pointer = write_to_instance_mem(instance, instruction, &result)?;
 
     Ok(result_pointer)
