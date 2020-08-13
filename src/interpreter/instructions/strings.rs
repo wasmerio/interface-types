@@ -131,7 +131,7 @@ executable_instruction!(
                     instruction,
                     InstructionErrorKind::InvalidValueOnTheStack {
                         expected_type: InterfaceType::String,
-                        received_type: (&value).into(),
+                        received_value: (&value).clone(),
                     },
                 )),
 

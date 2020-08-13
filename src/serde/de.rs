@@ -91,7 +91,7 @@ macro_rules! next {
 
                 Some(wrong_value) => Err(DeserializeError::TypeMismatch {
                     expected_type: InterfaceType::$variant,
-                    received_type: (*wrong_value).into(),
+                    received_value: (*wrong_value).clone(),
                 }),
 
                 None => Err(DeserializeError::InputEmpty),
@@ -122,7 +122,7 @@ impl<'de> Deserializer<'de> {
 
             Some(wrong_value) => Err(DeserializeError::TypeMismatch {
                 expected_type: InterfaceType::String,
-                received_type: (*wrong_value).into(),
+                received_value: (*wrong_value).clone(),
             }),
 
             None => Err(DeserializeError::InputEmpty),
@@ -139,7 +139,7 @@ impl<'de> Deserializer<'de> {
 
             Some(wrong_value) => Err(DeserializeError::TypeMismatch {
                 expected_type: InterfaceType::ByteArray,
-                received_type: (*wrong_value).into(),
+                received_value: (*wrong_value).clone(),
             }),
 
             None => Err(DeserializeError::InputEmpty),
@@ -165,7 +165,7 @@ pub enum DeserializeError {
         expected_type: InterfaceType,
 
         /// The received type.
-        received_type: InterfaceType,
+        received_value: InterfaceValue,
     },
 
     /// Arbitrary message.
@@ -186,11 +186,11 @@ impl Display for DeserializeError {
             Self::InputEmpty => write!(formatter, "Unexpected end of input"),
             Self::TypeMismatch {
                 ref expected_type,
-                ref received_type,
+                ref received_value,
             } => write!(
                 formatter,
-                "Type mismatch detected, expected `{:?}` but received `{:?}`",
-                expected_type, received_type
+                "Type mismatch detected: `{:?}` can't be converted to `{:?}`",
+                received_value, expected_type,
             ),
         }
     }
@@ -220,7 +220,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             Some(InterfaceValue::ByteArray(_)) => self.deserialize_bytes(visitor),
             Some(InterfaceValue::I32(_)) => self.deserialize_i32(visitor),
             Some(InterfaceValue::I64(_)) => self.deserialize_i64(visitor),
-            Some(InterfaceValue::Record(_)) => unreachable!("Records should have been flattened."), // already flattened
+            Some(InterfaceValue::Record(..)) => unreachable!("Records should have been flattened."), // already flattened
             None => Err(DeserializeError::InputEmpty),
         }
     }

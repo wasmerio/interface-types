@@ -33,7 +33,7 @@ macro_rules! lowering_lifting {
                                 instruction,
                                 InstructionErrorKind::InvalidValueOnTheStack {
                                     expected_type: InterfaceType::$from_variant,
-                                    received_type: (&wrong_value).into(),
+                                    received_value: wrong_value,
                                 }
                             ))
                         },

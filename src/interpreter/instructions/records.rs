@@ -9,18 +9,16 @@ use crate::interpreter::instructions::to_native;
 use crate::{
     ast::{Type, TypeKind},
     errors::{InstructionError, InstructionErrorKind},
-    interpreter::{
-        stack::{Stack, Stackable},
-        Instruction,
-    },
+    interpreter::Instruction,
     types::{InterfaceType, RecordType},
-    values::{FlattenInterfaceValueIterator, InterfaceValue},
+    values::InterfaceValue,
     vec1::Vec1,
 };
 
 use std::collections::VecDeque;
 use std::convert::TryInto;
 
+/*
 /// Build an `InterfaceValue::Record` based on values on the stack.
 ///
 /// To fill a record, every field `field_1` to `field_n` must get its
@@ -105,10 +103,11 @@ where
         }
     })
 }
+ */
 
 fn record_lift_memory_<'instance, Instance, Export, LocalImport, Memory, MemoryView>(
-    instance: &'instance mut Instance,
-    record_type: RecordType,
+    instance: &'instance Instance,
+    record_type: &RecordType,
     offset: usize,
     instruction: Instruction,
 ) -> Result<InterfaceValue, InstructionError>
@@ -123,8 +122,8 @@ where
     fn record_size(record_type: &RecordType) -> usize {
         let mut record_size = 0;
 
-        for ty in record_type.fields.iter() {
-            let params_count = match ty {
+        for field_type in record_type.fields.iter() {
+            let params_count = match field_type.ty {
                 InterfaceType::String | InterfaceType::ByteArray => 2,
                 _ => 1,
             };
@@ -137,16 +136,16 @@ where
 
     let length = record_type.fields.len();
     let mut values = VecDeque::with_capacity(length);
-    let size = record_size(&record_type);
+    let size = record_size(record_type);
     let data = read_from_instance_mem(instance, instruction, offset, size)?;
     // TODO: add error handling
     let data =
         safe_transmute::transmute_many::<u64, safe_transmute::SingleManyGuard>(&data).unwrap();
 
     let mut field_id = 0;
-    for field in record_type.fields.into_vec() {
+    for field in (*record_type.fields).iter() {
         let value = data[field_id];
-        match field {
+        match &field.ty {
             InterfaceType::S8 => {
                 values.push_back(InterfaceValue::S8(value as _));
             }
@@ -201,7 +200,7 @@ where
 
                     utils::deallocate(instance, instruction, string_offset as _, string_size as _)?;
                 } else {
-                    values.push_back(InterfaceValue::String("".to_string()));
+                    values.push_back(InterfaceValue::String(String::new()));
                 }
             }
             InterfaceType::ByteArray => {
@@ -224,8 +223,20 @@ where
                     values.push_back(InterfaceValue::ByteArray(vec![]));
                 }
             }
-            InterfaceType::Record(record_type) => {
+            InterfaceType::Record(record_type_name) => {
                 let offset = value;
+
+                let record_type =
+                    instance
+                        .wit_record_by_name(&record_type_name)
+                        .ok_or_else(|| {
+                            InstructionError::new(
+                                instruction,
+                                InstructionErrorKind::RecordTypeByNameIsMissing {
+                                    type_name: record_type_name.to_owned(),
+                                },
+                            )
+                        })?;
 
                 values.push_back(record_lift_memory_(
                     instance,
@@ -275,8 +286,8 @@ where
                 .map_err(|k| InstructionError::new(instruction, k))?;
 
             // TODO: size = 0
-            let instance = &mut runtime.wasm_instance;
-            let record_type = match instance.wit_type(type_index).ok_or_else(|| {
+            let instance = &runtime.wasm_instance;
+            let record_type = match instance.wit_type_by_id(type_index).ok_or_else(|| {
                 InstructionError::new(
                     instruction,
                     InstructionErrorKind::TypeIsMissing { type_index },
@@ -294,7 +305,7 @@ where
                 }
             };
 
-            let record = record_lift_memory_(*instance, record_type, offset, instruction)?;
+            let record = record_lift_memory_(&**instance, &record_type, offset, instruction)?;
             runtime.stack.push(record);
 
             Ok(())
@@ -353,8 +364,8 @@ where
                 result.push(value.len() as _);
             }
 
-            InterfaceValue::Record(record) => {
-                let record_ptr = record_lower_memory_(instance, instruction, record)?;
+            InterfaceValue::Record(values) => {
+                let record_ptr = record_lower_memory_(instance, instruction, values)?;
 
                 result.push(record_ptr as _);
             }
@@ -384,7 +395,7 @@ where
     Box::new({
         move |runtime| -> _ {
             let instance = &mut runtime.wasm_instance;
-            let record_type = match instance.wit_type(type_index).ok_or_else(|| {
+            let record_type = match instance.wit_type_by_id(type_index).ok_or_else(|| {
                 InstructionError::new(
                     instruction,
                     InstructionErrorKind::TypeIsMissing { type_index },
@@ -401,10 +412,9 @@ where
                     ))
                 }
             };
+
             match runtime.stack.pop1() {
-                Some(InterfaceValue::Record(record_values))
-                    if record_type == &(&*record_values).into() =>
-                {
+                Some(InterfaceValue::Record(record_values)) => {
                     /*
                     let value: Vec<u8> = crate::serde::de::from_interface_values(&record_values)
                         .map_err(|e| {
@@ -426,8 +436,8 @@ where
                 Some(value) => Err(InstructionError::new(
                     instruction,
                     InstructionErrorKind::InvalidValueOnTheStack {
-                        expected_type: InterfaceType::Record(record_type.clone()),
-                        received_type: (&value).into(),
+                        expected_type: InterfaceType::Record(record_type.name.clone()),
+                        received_value: value,
                     },
                 )),
                 None => Err(InstructionError::new(
@@ -439,6 +449,7 @@ where
     })
 }
 
+/*
 pub(crate) fn record_lower<Instance, Export, LocalImport, Memory, MemoryView>(
     type_index: u32,
     instruction: Instruction,
@@ -498,3 +509,4 @@ where
         }
     })
 }
+ */

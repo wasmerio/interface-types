@@ -154,17 +154,25 @@ impl Parse<'_> for RecordType {
     fn parse(parser: Parser<'_>) -> Result<Self> {
         parser.parse::<keyword::record>()?;
 
+        parser.parse::<keyword::string>()?;
+        let record_name = parser.parse()?;
+
         let mut fields = vec![];
 
         while !parser.is_empty() {
             fields.push(parser.parens(|parser| {
-                parser.parse::<keyword::field>()?;
+                parser.parse::<keyword::string>()?;
+                let name = parser.parse()?;
 
-                parser.parse()
+                parser.parse::<keyword::field>()?;
+                let ty = parser.parse()?;
+
+                Ok(RecordFieldType { name, ty })
             })?);
         }
 
         Ok(RecordType {
+            name: record_name,
             fields: Vec1::new(fields).expect("Record must have at least one field, zero given."),
         })
     }
@@ -339,7 +347,9 @@ impl<'a> Parse<'a> for Instruction {
             parser.parse::<keyword::byte_array_size>()?;
 
             Ok(Instruction::ByteArraySize)
-        } else if lookahead.peek::<keyword::record_lift>() {
+        }
+            /*
+        else if lookahead.peek::<keyword::record_lift>() {
             parser.parse::<keyword::record_lift>()?;
 
             Ok(Instruction::RecordLift {
@@ -351,7 +361,9 @@ impl<'a> Parse<'a> for Instruction {
             Ok(Instruction::RecordLower {
                 type_index: parser.parse()?,
             })
-        } else if lookahead.peek::<keyword::record_lift_memory>() {
+        }
+            */
+         else if lookahead.peek::<keyword::record_lift_memory>() {
             parser.parse::<keyword::record_lift_memory>()?;
 
             Ok(Instruction::RecordLiftMemory {
@@ -857,8 +869,10 @@ mod tests {
             Instruction::StringLiftMemory,
             Instruction::StringLowerMemory,
             Instruction::StringSize,
+            /*
             Instruction::RecordLift { type_index: 42 },
             Instruction::RecordLower { type_index: 42 },
+             */
         ];
 
         assert_eq!(inputs.len(), outputs.len());

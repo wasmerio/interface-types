@@ -85,13 +85,18 @@ impl ToString for &InterfaceType {
 impl ToString for &RecordType {
     fn to_string(&self) -> String {
         format!(
-            "record{fields}",
+            "record {} {fields}",
+            self.name,
             fields = self
                 .fields
                 .iter()
-                .fold(String::new(), |mut accumulator, interface_type| {
+                .fold(String::new(), |mut accumulator, field_type| {
                     accumulator.push(' ');
-                    accumulator.push_str(&format!("(field {})", &interface_type.to_string()));
+                    accumulator.push_str(&format!(
+                        "{}: {}\n",
+                        field_type.name,
+                        (&field_type.ty).to_string()
+                    ));
                     accumulator
                 }),
         )
@@ -142,8 +147,10 @@ impl ToString for &Instruction {
             Instruction::ByteArrayLiftMemory => "byte_array.lift_memory".into(),
             Instruction::ByteArrayLowerMemory => "byte_array.lower_memory".into(),
             Instruction::ByteArraySize => "byte_array.size".into(),
+            /*
             Instruction::RecordLift { type_index } => format!("record.lift {}", type_index),
             Instruction::RecordLower { type_index } => format!("record.lower {}", type_index),
+             */
             Instruction::RecordLiftMemory { type_index } => {
                 format!("record.lift_memory {}", type_index)
             }
@@ -475,8 +482,10 @@ mod tests {
             (&Instruction::StringLiftMemory).to_string(),
             (&Instruction::StringLowerMemory).to_string(),
             (&Instruction::StringSize).to_string(),
+            /*
             (&Instruction::RecordLift { type_index: 42 }).to_string(),
             (&Instruction::RecordLower { type_index: 42 }).to_string(),
+             */
         ];
         let outputs = vec![
             "arg.get 7",

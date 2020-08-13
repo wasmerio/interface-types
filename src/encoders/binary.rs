@@ -111,9 +111,20 @@ where
             InterfaceType::I64 => 0x0d_u8.to_bytes(writer),
             InterfaceType::Record(record_type) => {
                 0x0e_u8.to_bytes(writer)?;
-                record_type.to_bytes(writer)
+                record_type.as_str().to_bytes(writer)
             }
         }
+    }
+}
+
+/// Encode a `RecordType` into bytes.
+impl<W> ToBytes<W> for RecordFieldType
+where
+    W: Write,
+{
+    fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
+        self.name.as_str().to_bytes(writer)?;
+        self.ty.to_bytes(writer)
     }
 }
 
@@ -123,6 +134,7 @@ where
     W: Write,
 {
     fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
+        self.name.as_str().to_bytes(writer)?;
         self.fields.to_bytes(writer)
     }
 }
@@ -338,7 +350,7 @@ where
             Instruction::ByteArrayLiftMemory => 0x37_u8.to_bytes(writer)?,
             Instruction::ByteArrayLowerMemory => 0x38_u8.to_bytes(writer)?,
             Instruction::ByteArraySize => 0x39_u8.to_bytes(writer)?,
-
+            /*
             Instruction::RecordLift { type_index } => {
                 0x25_u8.to_bytes(writer)?;
                 (*type_index as u64).to_bytes(writer)?
@@ -347,6 +359,7 @@ where
                 0x26_u8.to_bytes(writer)?;
                 (*type_index as u64).to_bytes(writer)?
             }
+             */
             Instruction::RecordLiftMemory { type_index } => {
                 0x3A_u8.to_bytes(writer)?;
                 (*type_index as u64).to_bytes(writer)?

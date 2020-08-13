@@ -51,15 +51,30 @@ pub enum InterfaceType {
     /// A 64-bits integer (as defiend in WebAssembly core).
     I64,
 
-    /// A record.
-    Record(RecordType),
+    /// A record contains type name.
+    // TODO: consider making it &str
+    Record(String),
+}
+
+/// Represents a record field type.
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
+pub struct RecordFieldType {
+    // TODO: make name optional to support structures with anonymous fields in Rust
+    /// A field name.
+    pub name: String,
+
+    /// A field type.
+    pub ty: InterfaceType,
 }
 
 /// Represents a record type.
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct RecordType {
-    /// Types representing the fields.
+    /// A record name.
+    pub name: String,
+
+    /// Types and names representing the fields.
     /// A record must have at least one field, hence the
     /// [`Vec1`][crate::vec1::Vec1].
-    pub fields: Vec1<InterfaceType>,
+    pub fields: Vec1<RecordFieldType>,
 }

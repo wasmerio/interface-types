@@ -127,7 +127,7 @@ executable_instruction!(
                     instruction,
                     InstructionErrorKind::InvalidValueOnTheStack {
                         expected_type: InterfaceType::ByteArray,
-                        received_type: (&value).into(),
+                        received_value: value,
                     },
                 )),
 

@@ -245,13 +245,14 @@ where
                 }
                 Instruction::ByteArraySize => instructions::byte_array_size(*instruction),
 
+                /*
                 Instruction::RecordLift { type_index } => {
                     instructions::record_lift(*type_index, *instruction)
                 }
                 Instruction::RecordLower { type_index } => {
                     instructions::record_lower(*type_index, *instruction)
                 }
-
+                */
                 Instruction::RecordLiftMemory { type_index } => {
                     instructions::record_lift_memory(*type_index, *instruction)
                 }

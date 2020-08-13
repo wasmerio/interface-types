@@ -7,6 +7,8 @@ mod records;
 mod strings;
 mod swap2;
 
+use crate::interpreter::wasm;
+use crate::types::InterfaceType;
 use crate::{
     errors::{InstructionError, InstructionErrorKind, InstructionResult, WasmValueNativeCastError},
     values::{InterfaceValue, NativeType},
@@ -153,6 +155,7 @@ pub enum Instruction {
     /// The `string.size` instruction.
     ByteArraySize,
 
+    /*
     /// The `record.lift` instruction.
     RecordLift {
         /// The type index of the record.
@@ -164,6 +167,8 @@ pub enum Instruction {
         /// The type index of the record.
         type_index: u32,
     },
+
+     */
 
     /// The `record.lift_memory` instruction.
     RecordLiftMemory {
@@ -195,6 +200,114 @@ where
 {
     T::try_from(wit_value)
         .map_err(|error| InstructionError::new(instruction, InstructionErrorKind::ToNative(error)))
+}
+
+pub(crate) fn check_function_signature<
+    'instance,
+    Instance,
+    Export,
+    LocalImport,
+    Memory,
+    MemoryView,
+>(
+    instance: &'instance Instance,
+    local_import: &LocalImport,
+    values: &[InterfaceValue],
+    instruction: Instruction,
+) -> Result<(), InstructionError>
+where
+    Export: wasm::structures::Export + 'instance,
+    LocalImport: wasm::structures::LocalImport + 'instance,
+    Memory: wasm::structures::Memory<MemoryView> + 'instance,
+    MemoryView: wasm::structures::MemoryView,
+    Instance: wasm::structures::Instance<Export, LocalImport, Memory, MemoryView>,
+{
+    let func_inputs = local_import.inputs();
+
+    for (func_input_arg, value) in func_inputs.iter().zip(values.iter()) {
+        is_value_compatible_to_type(instance, &func_input_arg, value, instruction)?;
+    }
+
+    Ok(())
+}
+
+/// Check whether the provided value could be a value of the provided type.
+pub(crate) fn is_value_compatible_to_type<
+    'instance,
+    Instance,
+    Export,
+    LocalImport,
+    Memory,
+    MemoryView,
+>(
+    instance: &'instance Instance,
+    interface_type: &InterfaceType,
+    interface_value: &InterfaceValue,
+    instruction: Instruction,
+) -> Result<(), InstructionError>
+where
+    Export: wasm::structures::Export + 'instance,
+    LocalImport: wasm::structures::LocalImport + 'instance,
+    Memory: wasm::structures::Memory<MemoryView> + 'instance,
+    MemoryView: wasm::structures::MemoryView,
+    Instance: wasm::structures::Instance<Export, LocalImport, Memory, MemoryView>,
+{
+    match (&interface_type, interface_value) {
+        (InterfaceType::S8, InterfaceValue::S8(_)) => Ok(()),
+        (InterfaceType::S16, InterfaceValue::S16(_)) => Ok(()),
+        (InterfaceType::S32, InterfaceValue::S32(_)) => Ok(()),
+        (InterfaceType::S64, InterfaceValue::S64(_)) => Ok(()),
+        (InterfaceType::U8, InterfaceValue::U8(_)) => Ok(()),
+        (InterfaceType::U16, InterfaceValue::U16(_)) => Ok(()),
+        (InterfaceType::U32, InterfaceValue::U32(_)) => Ok(()),
+        (InterfaceType::U64, InterfaceValue::U64(_)) => Ok(()),
+        (InterfaceType::I32, InterfaceValue::I32(_)) => Ok(()),
+        (InterfaceType::I64, InterfaceValue::I64(_)) => Ok(()),
+        (InterfaceType::F32, InterfaceValue::F32(_)) => Ok(()),
+        (InterfaceType::F64, InterfaceValue::F64(_)) => Ok(()),
+        (InterfaceType::String, InterfaceValue::String(_)) => Ok(()),
+        (InterfaceType::ByteArray, InterfaceValue::ByteArray(_)) => Ok(()),
+        (InterfaceType::Record(ref record_name), InterfaceValue::Record(record_fields)) => {
+            let record_type = instance.wit_record_by_name(record_name).ok_or_else(|| {
+                InstructionError::new(
+                    instruction,
+                    InstructionErrorKind::RecordTypeByNameIsMissing {
+                        type_name: record_name.to_owned(),
+                    },
+                )
+            })?;
+
+            if record_fields.len() != record_type.fields.len() {
+                return Err(InstructionError::new(
+                    instruction,
+                    InstructionErrorKind::InvalidValueOnTheStack {
+                        expected_type: interface_type.clone(),
+                        received_value: interface_value.clone(),
+                    },
+                ));
+            }
+
+            for (record_type_field, record_value_field) in
+                record_type.fields.iter().zip(record_fields.iter())
+            {
+                is_value_compatible_to_type(
+                    instance,
+                    &record_type_field.ty,
+                    record_value_field,
+                    instruction,
+                )?;
+            }
+
+            Ok(())
+        }
+        _ => Err(InstructionError::new(
+            instruction,
+            InstructionErrorKind::InvalidValueOnTheStack {
+                expected_type: interface_type.clone(),
+                received_value: interface_value.clone(),
+            },
+        )),
+    }
 }
 
 #[cfg(test)]
@@ -381,7 +494,7 @@ pub(crate) mod tests {
             Some(&self.memory)
         }
 
-        fn wit_type(&self, index: u32) -> Option<&Type> {
+        fn wit_type_by_id(&self, index: u32) -> Option<&Type> {
             self.wit_types.get(index as usize)
         }
     }

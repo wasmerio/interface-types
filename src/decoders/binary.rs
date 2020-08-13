@@ -1,6 +1,6 @@
 //! Parse the WIT binary representation into an [AST](crate::ast).
 
-use crate::{ast::*, interpreter::Instruction, types::*, vec1::Vec1};
+use crate::{ast::*, interpreter::Instruction, types::*};
 use nom::{
     error::{make_error, ErrorKind, ParseError},
     Err, IResult,
@@ -70,6 +70,25 @@ fn uleb<'input, E: ParseError<&'input [u8]>>(input: &'input [u8]) -> IResult<&'i
     ))
 }
 
+fn record_field<'input, E: ParseError<&'input [u8]>>(
+    mut input: &'input [u8],
+) -> IResult<&'input [u8], RecordFieldType, E> {
+    if input.is_empty() {
+        return Err(Err::Error(make_error(input, ErrorKind::Eof)));
+    }
+
+    consume!((input, name) = string(input)?);
+    consume!((input, ty) = ty(input)?);
+
+    Ok((
+        input,
+        RecordFieldType {
+            name: name.to_owned(),
+            ty,
+        },
+    ))
+}
+
 /// Parse an interface type.
 fn ty<'input, E: ParseError<&'input [u8]>>(
     mut input: &'input [u8],
@@ -97,9 +116,9 @@ fn ty<'input, E: ParseError<&'input [u8]>>(
         0x0c => InterfaceType::I32,
         0x0d => InterfaceType::I64,
         0x0e => {
-            consume!((input, record_type) = record_type(input)?);
+            consume!((input, record_name) = string(input)?);
 
-            InterfaceType::Record(record_type)
+            InterfaceType::Record(record_name.to_owned())
         }
         _ => return Err(Err::Error(make_error(input, ErrorKind::ParseTo))),
     };
@@ -111,11 +130,15 @@ fn ty<'input, E: ParseError<&'input [u8]>>(
 fn record_type<'input, E: ParseError<&'input [u8]>>(
     input: &'input [u8],
 ) -> IResult<&'input [u8], RecordType, E> {
-    let (output, fields) = list(input, ty)?;
+    use crate::vec1::Vec1;
+
+    let (output, name) = string(input)?;
+    let (output, fields) = list(output, record_field)?;
 
     Ok((
         output,
         RecordType {
+            name: name.to_owned(),
             fields: Vec1::new(fields).expect("Record must have at least one field, zero given."),
         },
     ))
@@ -240,6 +263,7 @@ fn instruction<'input, E: ParseError<&'input [u8]>>(
         0x38 => (input, Instruction::ByteArrayLowerMemory),
         0x39 => (input, Instruction::ByteArraySize),
 
+/*
         0x25 => {
             consume!((input, argument_0) = uleb(input)?);
 
@@ -260,6 +284,7 @@ fn instruction<'input, E: ParseError<&'input [u8]>>(
                 },
             )
         }
+ */
 
         0x3A => {
             consume!((input, argument_0) = uleb(input)?);
@@ -832,8 +857,11 @@ mod tests {
                 Instruction::StringLiftMemory,
                 Instruction::StringLowerMemory,
                 Instruction::StringSize,
+                /*
                 Instruction::RecordLift { type_index: 1 },
                 Instruction::RecordLower { type_index: 1 },
+
+                 */
             ],
         ));
 
