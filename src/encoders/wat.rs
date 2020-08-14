@@ -158,19 +158,23 @@ impl ToString for &Instruction {
 
 /// Encode a list of `InterfaceType` representing inputs into a
 /// string.
-fn input_types_to_param(input_types: &[InterfaceType]) -> String {
-    if input_types.is_empty() {
-        "".into()
+fn encode_arguments(arg_types: &[InterfaceType], arg_names: &[String]) -> String {
+    // here we know that arg_names and arg_types have the same length
+    if arg_names.is_empty() {
+        String::from("")
     } else {
         format!(
             "\n  (param{})",
-            input_types
-                .iter()
-                .fold(String::new(), |mut accumulator, interface_type| {
+            arg_names.iter().zip(arg_types.iter()).fold(
+                String::new(),
+                |mut accumulator, (name, ty)| {
                     accumulator.push(' ');
-                    accumulator.push_str(&interface_type.to_string());
+                    accumulator.push_str(name);
+                    accumulator.push_str(": ");
+                    accumulator.push_str(&ty.to_string());
                     accumulator
-                })
+                }
+            )
         )
     }
 }
@@ -198,10 +202,16 @@ fn output_types_to_result(output_types: &[InterfaceType]) -> String {
 impl<'input> ToString for &Type {
     fn to_string(&self) -> String {
         match self {
-            Type::Function { inputs, outputs } => format!(
-                r#"(@interface type (func{inputs}{outputs}))"#,
-                inputs = input_types_to_param(&inputs),
-                outputs = output_types_to_result(&outputs),
+            Type::Function {
+                name,
+                arg_types,
+                arg_names,
+                output_types,
+            } => format!(
+                r#"(@interface type (func {name} {args}{output_types}))"#,
+                name = name,
+                args = encode_arguments(arg_types, arg_names),
+                output_types = output_types_to_result(&output_types),
             ),
 
             Type::Record(record_type) => format!(

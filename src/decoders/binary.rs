@@ -121,7 +121,7 @@ fn record_type<'input, E: ParseError<&'input [u8]>>(
     ))
 }
 
-/// Parse a UTF-8 string.
+/// Parse a UTF-8 string into &str.
 fn string<'input, E: ParseError<&'input [u8]>>(
     input: &'input [u8],
 ) -> IResult<&'input [u8], &'input str, E> {
@@ -139,6 +139,28 @@ fn string<'input, E: ParseError<&'input [u8]>>(
     Ok((
         &input[length..],
         str::from_utf8(&input[..length])
+            .map_err(|_| Err::Error(make_error(input, ErrorKind::ParseTo)))?,
+    ))
+}
+
+/// Parse a UTF-8 string into String.
+fn owned_string<'input, E: ParseError<&'input [u8]>>(
+    input: &'input [u8],
+) -> IResult<&'input [u8], String, E> {
+    if input.is_empty() {
+        return Err(Err::Error(make_error(input, ErrorKind::Eof)));
+    }
+
+    let length = input[0] as usize;
+    let input = &input[1..];
+
+    if input.len() < length {
+        return Err(Err::Error(make_error(input, ErrorKind::Eof)));
+    }
+
+    Ok((
+        &input[length..],
+        String::from_utf8(input[..length].to_vec())
             .map_err(|_| Err::Error(make_error(input, ErrorKind::ParseTo)))?,
     ))
 }
@@ -306,10 +328,17 @@ fn types<'input, E: ParseError<&'input [u8]>>(
 
         match type_kind {
             TypeKind::Function => {
-                consume!((input, inputs) = list(input, ty)?);
-                consume!((input, outputs) = list(input, ty)?);
+                consume!((input, name) = string(input)?);
+                consume!((input, arg_types) = list(input, ty)?);
+                consume!((input, arg_names) = list(input, owned_string)?);
+                consume!((input, output_types) = list(input, ty)?);
 
-                types.push(Type::Function { inputs, outputs });
+                types.push(Type::Function {
+                    name: String::from(name),
+                    arg_types,
+                    arg_names,
+                    output_types,
+                });
             }
 
             TypeKind::Record => {

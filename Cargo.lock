@@ -185,7 +185,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "078775d0255232fb988e6fccf26ddc9d1ac274299aaedcedce21c6f72cc533ce"
 
 [[package]]
-name = "wasmer-interface-types"
+name = "wasmer-interface-types-fl"
 version = "0.17.0"
 dependencies = [
  "nom",
