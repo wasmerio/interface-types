@@ -26,11 +26,18 @@ pub enum Type {
     /// (@interface type (func (param i32 i32) (result string)))
     /// ```
     Function {
+        /// Name of a function.
+        name: String,
+
         /// Types for the parameters (`(param …)`).
-        inputs: Vec<InterfaceType>,
+        arg_types: Vec<InterfaceType>,
+
+        /// Name of function argument types.
+        // TODO: introduce a struct combines name and type of a field
+        arg_names: Vec<String>,
 
         /// Types for the results (`(result …)`).
-        outputs: Vec<InterfaceType>,
+        output_types: Vec<InterfaceType>,
     },
 
     /// A record type, like:

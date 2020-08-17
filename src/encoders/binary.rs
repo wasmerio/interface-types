@@ -66,6 +66,24 @@ where
     }
 }
 
+/// Encode a String into bytes.
+///
+/// Decoder is `decoders::binary::string`.
+impl<W> ToBytes<W> for String
+where
+    W: Write,
+{
+    fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
+        // Size first.
+        writer.write_all(&[self.len() as u8])?;
+
+        // Then the string.
+        writer.write_all(self.as_bytes())?;
+
+        Ok(())
+    }
+}
+
 /// Encode a vector into bytes.
 ///
 /// Decoder is `decoders::binary::list`.
@@ -177,10 +195,17 @@ where
 {
     fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
         match self {
-            Type::Function { inputs, outputs } => {
+            Type::Function {
+                name,
+                arg_types,
+                arg_names,
+                output_types,
+            } => {
                 TypeKind::Function.to_bytes(writer)?;
-                inputs.to_bytes(writer)?;
-                outputs.to_bytes(writer)?;
+                name.to_bytes(writer)?;
+                arg_types.to_bytes(writer)?;
+                arg_names.to_bytes(writer)?;
+                output_types.to_bytes(writer)?;
             }
 
             Type::Record(record_type) => {

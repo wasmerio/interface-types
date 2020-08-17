@@ -415,7 +415,7 @@ impl Parse<'_> for AtInterface {
 
 #[derive(PartialEq, Debug)]
 enum FunctionType {
-    Input(Vec<InterfaceType>),
+    Header(String, Vec<String>, Vec<InterfaceType>),
     Output(Vec<InterfaceType>),
 }
 
@@ -426,14 +426,17 @@ impl Parse<'_> for FunctionType {
 
             if lookahead.peek::<keyword::param>() {
                 parser.parse::<keyword::param>()?;
+                let func_name = parser.parse()?;
 
-                let mut inputs = vec![];
+                let mut names = vec![];
+                let mut types = vec![];
 
                 while !parser.is_empty() {
-                    inputs.push(parser.parse()?);
+                    names.push(parser.parse()?);
+                    types.push(parser.parse()?);
                 }
 
-                Ok(FunctionType::Input(inputs))
+                Ok(FunctionType::Header(func_name, names, types))
             } else if lookahead.peek::<keyword::result>() {
                 parser.parse::<keyword::result>()?;
 
@@ -500,21 +503,39 @@ impl<'a> Parse<'a> for Type {
             if lookahead.peek::<keyword::func>() {
                 parser.parse::<keyword::func>()?;
 
-                let mut input_types = vec![];
+                let mut arg_types = vec![];
+                let mut arg_names = vec![];
                 let mut output_types = vec![];
+                let mut name: Option<String> = None;
 
                 while !parser.is_empty() {
                     let function_type = parser.parse::<FunctionType>()?;
 
                     match function_type {
-                        FunctionType::Input(mut inputs) => input_types.append(&mut inputs),
+                        FunctionType::Header(func_name, mut names, mut types) => {
+                            name = Some(func_name);
+                            arg_names.append(&mut names);
+                            arg_types.append(&mut types);
+                        },
                         FunctionType::Output(mut outputs) => output_types.append(&mut outputs),
                     }
                 }
 
+                if name.is_none() {
+                    return Err(parser.error("Malformed wast: function doesn't contain name"));
+                }
+
+                if arg_types.len() != arg_names.len() {
+                    return Err(parser.error("Malformed wast: function argument types count should be equal to argument names count"));
+                }
+
+                // It's has been already checked for None.
+                let name = name.unwrap();
                 Ok(Type::Function {
-                    inputs: input_types,
-                    outputs: output_types,
+                    name,
+                    arg_types,
+                    arg_names,
+                    output_types,
                 })
             } else if lookahead.peek::<keyword::record>() {
                 Ok(Type::Record(parser.parse()?))
@@ -888,7 +909,7 @@ mod tests {
     #[test]
     fn test_param_empty() {
         let input = buffer("(param)");
-        let output = FunctionType::Input(vec![]);
+        let output = FunctionType::InputTypes(vec![]);
 
         assert_eq!(parser::parse::<FunctionType>(&input).unwrap(), output);
     }
@@ -896,7 +917,7 @@ mod tests {
     #[test]
     fn test_param() {
         let input = buffer("(param i32 string)");
-        let output = FunctionType::Input(vec![InterfaceType::I32, InterfaceType::String]);
+        let output = FunctionType::InputTypes(vec![InterfaceType::I32, InterfaceType::String]);
 
         assert_eq!(parser::parse::<FunctionType>(&input).unwrap(), output);
     }
