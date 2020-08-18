@@ -148,7 +148,12 @@ where
         )
     })?;
 
-    crate::interpreter::instructions::check_function_signature(instance, local_or_import, &inputs, instruction)?;
+    crate::interpreter::instructions::check_function_signature(
+        instance,
+        local_or_import,
+        &inputs,
+        instruction,
+    )?;
 
     let outputs = local_or_import.call(&inputs).map_err(|_| {
         InstructionError::new(

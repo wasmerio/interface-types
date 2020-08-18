@@ -8,7 +8,8 @@ mod strings;
 mod swap2;
 
 use crate::interpreter::wasm;
-use crate::types::InterfaceType;
+use crate::types::{InterfaceType, RecordType};
+use crate::vec1::Vec1;
 use crate::{
     errors::{InstructionError, InstructionErrorKind, InstructionResult, WasmValueNativeCastError},
     values::{InterfaceValue, NativeType},
@@ -169,7 +170,6 @@ pub enum Instruction {
     },
 
      */
-
     /// The `record.lift_memory` instruction.
     RecordLiftMemory {
         /// The type index of the record.
@@ -277,26 +277,7 @@ where
                 )
             })?;
 
-            if record_fields.len() != record_type.fields.len() {
-                return Err(InstructionError::new(
-                    instruction,
-                    InstructionErrorKind::InvalidValueOnTheStack {
-                        expected_type: interface_type.clone(),
-                        received_value: interface_value.clone(),
-                    },
-                ));
-            }
-
-            for (record_type_field, record_value_field) in
-                record_type.fields.iter().zip(record_fields.iter())
-            {
-                is_value_compatible_to_type(
-                    instance,
-                    &record_type_field.ty,
-                    record_value_field,
-                    instruction,
-                )?;
-            }
+            is_record_fields_compatible_to_type(instance, record_type, record_fields, instruction)?;
 
             Ok(())
         }
@@ -308,6 +289,58 @@ where
             },
         )),
     }
+}
+
+pub(crate) fn is_record_fields_compatible_to_type<
+    'instance,
+    Instance,
+    Export,
+    LocalImport,
+    Memory,
+    MemoryView,
+>(
+    instance: &'instance Instance,
+    record_type: &RecordType,
+    record_fields: &[InterfaceValue],
+    instruction: Instruction,
+) -> Result<(), InstructionError>
+where
+    Export: wasm::structures::Export + 'instance,
+    LocalImport: wasm::structures::LocalImport + 'instance,
+    Memory: wasm::structures::Memory<MemoryView> + 'instance,
+    MemoryView: wasm::structures::MemoryView,
+    Instance: wasm::structures::Instance<Export, LocalImport, Memory, MemoryView>,
+{
+    if record_fields.is_empty() {
+        return Err(InstructionError::new(
+            instruction,
+            InstructionErrorKind::CorruptedRecord(String::from("record contains no fields")),
+        ));
+    }
+
+    if record_fields.len() != record_type.fields.len() {
+        return Err(InstructionError::new(
+            instruction,
+            InstructionErrorKind::InvalidValueOnTheStack {
+                expected_type: InterfaceType::Record(record_type.name.clone()),
+                // unwrap is safe here - len's been already checked
+                received_value: InterfaceValue::Record(Vec1::new(record_fields.to_vec()).unwrap()),
+            },
+        ));
+    }
+
+    for (record_type_field, record_value_field) in
+        record_type.fields.iter().zip(record_fields.iter())
+    {
+        is_value_compatible_to_type(
+            instance,
+            &record_type_field.ty,
+            record_value_field,
+            instruction,
+        )?;
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

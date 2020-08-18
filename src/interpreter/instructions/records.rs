@@ -3,11 +3,8 @@ mod utils;
 use utils::read_from_instance_mem;
 use utils::write_to_instance_mem;
 
-// use crate::interpreter::wasm;
-
-use crate::interpreter::instructions::to_native;
+use crate::interpreter::instructions::{is_record_fields_compatible_to_type, to_native};
 use crate::{
-    ast::{Type, TypeKind},
     errors::{InstructionError, InstructionErrorKind},
     interpreter::Instruction,
     types::{InterfaceType, RecordType},
@@ -287,25 +284,14 @@ where
 
             // TODO: size = 0
             let instance = &runtime.wasm_instance;
-            let record_type = match instance.wit_type_by_id(type_index).ok_or_else(|| {
+            let record_type = instance.wit_record_by_id(type_index).ok_or_else(|| {
                 InstructionError::new(
                     instruction,
                     InstructionErrorKind::TypeIsMissing { type_index },
                 )
-            })? {
-                Type::Record(record_type) => record_type.clone(),
-                Type::Function { .. } => {
-                    return Err(InstructionError::new(
-                        instruction,
-                        InstructionErrorKind::InvalidTypeKind {
-                            expected_kind: TypeKind::Record,
-                            received_kind: TypeKind::Function,
-                        },
-                    ))
-                }
-            };
+            })?;
 
-            let record = record_lift_memory_(&**instance, &record_type, offset, instruction)?;
+            let record = record_lift_memory_(&**instance, record_type, offset, instruction)?;
             runtime.stack.push(record);
 
             Ok(())
@@ -395,40 +381,22 @@ where
     Box::new({
         move |runtime| -> _ {
             let instance = &mut runtime.wasm_instance;
-            let record_type = match instance.wit_type_by_id(type_index).ok_or_else(|| {
+            let record_type = instance.wit_record_by_id(type_index).ok_or_else(|| {
                 InstructionError::new(
                     instruction,
                     InstructionErrorKind::TypeIsMissing { type_index },
                 )
-            })? {
-                Type::Record(record_type) => record_type,
-                Type::Function { .. } => {
-                    return Err(InstructionError::new(
-                        instruction,
-                        InstructionErrorKind::InvalidTypeKind {
-                            expected_kind: TypeKind::Record,
-                            received_kind: TypeKind::Function,
-                        },
-                    ))
-                }
-            };
+            })?;
 
             match runtime.stack.pop1() {
-                Some(InterfaceValue::Record(record_values)) => {
-                    /*
-                    let value: Vec<u8> = crate::serde::de::from_interface_values(&record_values)
-                        .map_err(|e| {
-                            InstructionError::new(
-                                instruction,
-                                InstructionErrorKind::SerdeError(e.to_string()),
-                            )
-                        })?;
-
-                    let value_pointer = write_to_instance_mem(*instance, instruction, &value)?;
-                    runtime.stack.push(InterfaceValue::I32(value_pointer));
-                    runtime.stack.push(InterfaceValue::I32(value.len() as _));
-                     */
-                    let offset = record_lower_memory_(*instance, instruction, record_values)?;
+                Some(InterfaceValue::Record(record_fields)) => {
+                    is_record_fields_compatible_to_type(
+                        &**instance,
+                        record_type,
+                        &record_fields,
+                        instruction,
+                    )?;
+                    let offset = record_lower_memory_(*instance, instruction, record_fields)?;
                     runtime.stack.push(InterfaceValue::I32(offset));
 
                     Ok(())

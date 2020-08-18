@@ -56,47 +56,11 @@ pub enum InterfaceValue {
     Record(Vec1<InterfaceValue>),
 }
 
-/*
-impl From<&InterfaceValue> for InterfaceType {
-    fn from(value: &InterfaceValue) -> Self {
-        match value {
-            InterfaceValue::S8(_) => Self::S8,
-            InterfaceValue::S16(_) => Self::S16,
-            InterfaceValue::S32(_) => Self::S32,
-            InterfaceValue::S64(_) => Self::S64,
-            InterfaceValue::U8(_) => Self::U8,
-            InterfaceValue::U16(_) => Self::U16,
-            InterfaceValue::U32(_) => Self::U32,
-            InterfaceValue::U64(_) => Self::U64,
-            InterfaceValue::F32(_) => Self::F32,
-            InterfaceValue::F64(_) => Self::F64,
-            InterfaceValue::String(_) => Self::String,
-            InterfaceValue::ByteArray(_) => Self::ByteArray,
-            //InterfaceValue::Anyref(_) => Self::Anyref,
-            InterfaceValue::I32(_) => Self::I32,
-            InterfaceValue::I64(_) => Self::I64,
-            InterfaceValue::Record(name) => Self::Record(name.to_owned()),
-        }
-    }
-}
- */
-
 impl Default for InterfaceValue {
     fn default() -> Self {
         Self::I32(0)
     }
 }
-
-/*
-impl From<&Vec<InterfaceValue>> for RecordType {
-    fn from(values: &Vec<InterfaceValue>) -> Self {
-        RecordType {
-            fields: Vec1::new(values.iter().map(Into::into).collect())
-                .expect("Record must have at least one field, zero given."),
-        }
-    }
-}
- */
 
 /// Represents a native type supported by WIT.
 pub trait NativeType {

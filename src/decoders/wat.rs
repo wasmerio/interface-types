@@ -178,6 +178,7 @@ impl Parse<'_> for RecordType {
     }
 }
 
+#[allow(clippy::suspicious_else_formatting)]
 impl<'a> Parse<'a> for Instruction {
     #[allow(clippy::cognitive_complexity)]
     fn parse(parser: Parser<'a>) -> Result<Self> {
@@ -348,7 +349,7 @@ impl<'a> Parse<'a> for Instruction {
 
             Ok(Instruction::ByteArraySize)
         }
-            /*
+        /*
         else if lookahead.peek::<keyword::record_lift>() {
             parser.parse::<keyword::record_lift>()?;
 
@@ -363,7 +364,7 @@ impl<'a> Parse<'a> for Instruction {
             })
         }
             */
-         else if lookahead.peek::<keyword::record_lift_memory>() {
+        else if lookahead.peek::<keyword::record_lift_memory>() {
             parser.parse::<keyword::record_lift_memory>()?;
 
             Ok(Instruction::RecordLiftMemory {

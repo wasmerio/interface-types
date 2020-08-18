@@ -170,6 +170,9 @@ pub enum InstructionErrorKind {
         type_name: String,
     },
 
+    /// Corrupted record's been popped from the stack.
+    CorruptedRecord(String),
+
     /// Read a type that has an unexpected type.
     InvalidTypeKind {
         /// The expected kind.
@@ -274,6 +277,13 @@ impl Display for InstructionErrorKind {
                 "type with `{}` is missing in a Wasm binary",
                 type_name
             ),
+
+            Self::CorruptedRecord(err) => write!(
+                formatter,
+                "{}",
+                err
+            ),
+
             Self::SerdeError(err) => write!(
                 formatter,
                 "serde error: {}", err,
