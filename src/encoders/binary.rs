@@ -186,6 +186,16 @@ where
     }
 }
 
+impl<W> ToBytes<W> for FunctionArg
+where
+    W: Write,
+{
+    fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
+        self.name.to_bytes(writer)?;
+        self.ty.to_bytes(writer)
+    }
+}
+
 /// Encode a `Type` into bytes.
 ///
 /// Decoder is in `decoders::binary::types`.
@@ -196,15 +206,11 @@ where
     fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
         match self {
             Type::Function {
-                name,
-                arg_types,
-                arg_names,
+                arguments,
                 output_types,
             } => {
                 TypeKind::Function.to_bytes(writer)?;
-                name.to_bytes(writer)?;
-                arg_types.to_bytes(writer)?;
-                arg_names.to_bytes(writer)?;
+                arguments.to_bytes(writer)?;
                 output_types.to_bytes(writer)?;
             }
 

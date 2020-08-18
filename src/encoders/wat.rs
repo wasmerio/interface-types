@@ -165,16 +165,16 @@ impl ToString for &Instruction {
 
 /// Encode a list of `InterfaceType` representing inputs into a
 /// string.
-fn encode_arguments(arg_types: &[InterfaceType], arg_names: &[String]) -> String {
+fn encode_function_arguments(arguments: &[FunctionArg]) -> String {
     // here we know that arg_names and arg_types have the same length
-    if arg_names.is_empty() {
+    if arguments.is_empty() {
         String::from("")
     } else {
         format!(
             "\n  (param{})",
-            arg_names.iter().zip(arg_types.iter()).fold(
+            arguments.iter().fold(
                 String::new(),
-                |mut accumulator, (name, ty)| {
+                |mut accumulator, FunctionArg { name, ty }| {
                     accumulator.push(' ');
                     accumulator.push_str(name);
                     accumulator.push_str(": ");
@@ -210,14 +210,11 @@ impl<'input> ToString for &Type {
     fn to_string(&self) -> String {
         match self {
             Type::Function {
-                name,
-                arg_types,
-                arg_names,
+                arguments,
                 output_types,
             } => format!(
-                r#"(@interface type (func {name} {args}{output_types}))"#,
-                name = name,
-                args = encode_arguments(arg_types, arg_names),
+                r#"(@interface type (func {args} {output_types}))"#,
+                args = encode_function_arguments(arguments),
                 output_types = output_types_to_result(&output_types),
             ),
 

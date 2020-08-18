@@ -17,6 +17,16 @@ pub enum TypeKind {
     Record,
 }
 
+/// Represents the function argument type.
+#[derive(PartialEq, Debug, Clone)]
+pub struct FunctionArg {
+    /// A function argument name.
+    pub name: String,
+
+    /// A function argument type.
+    pub ty: InterfaceType,
+}
+
 /// Represents a type.
 #[derive(PartialEq, Debug, Clone)]
 pub enum Type {
@@ -26,15 +36,8 @@ pub enum Type {
     /// (@interface type (func (param i32 i32) (result string)))
     /// ```
     Function {
-        /// Name of a function.
-        name: String,
-
-        /// Types for the parameters (`(param …)`).
-        arg_types: Vec<InterfaceType>,
-
-        /// Name of function argument types.
-        // TODO: introduce a struct combines name and type of a field
-        arg_names: Vec<String>,
+        /// Types for the parameters (`(param (name i32))`).
+        arguments: Vec<FunctionArg>,
 
         /// Types for the results (`(result …)`).
         output_types: Vec<InterfaceType>,

@@ -416,7 +416,7 @@ impl Parse<'_> for AtInterface {
 
 #[derive(PartialEq, Debug)]
 enum FunctionType {
-    Header(String, Vec<String>, Vec<InterfaceType>),
+    Header(Vec<FunctionArg>),
     Output(Vec<InterfaceType>),
 }
 
@@ -427,17 +427,19 @@ impl Parse<'_> for FunctionType {
 
             if lookahead.peek::<keyword::param>() {
                 parser.parse::<keyword::param>()?;
-                let func_name = parser.parse()?;
 
-                let mut names = vec![];
-                let mut types = vec![];
+                let mut arguments = vec![];
 
                 while !parser.is_empty() {
-                    names.push(parser.parse()?);
-                    types.push(parser.parse()?);
+                    let arg_name: String = parser.parse()?;
+                    let arg_type: InterfaceType = parser.parse()?;
+                    arguments.push(FunctionArg {
+                        name: arg_name,
+                        ty: arg_type,
+                    });
                 }
 
-                Ok(FunctionType::Header(func_name, names, types))
+                Ok(FunctionType::Header(arguments))
             } else if lookahead.peek::<keyword::result>() {
                 parser.parse::<keyword::result>()?;
 
@@ -504,38 +506,22 @@ impl<'a> Parse<'a> for Type {
             if lookahead.peek::<keyword::func>() {
                 parser.parse::<keyword::func>()?;
 
-                let mut arg_types = vec![];
-                let mut arg_names = vec![];
+                let mut arguments = vec![];
                 let mut output_types = vec![];
-                let mut name: Option<String> = None;
 
                 while !parser.is_empty() {
                     let function_type = parser.parse::<FunctionType>()?;
 
                     match function_type {
-                        FunctionType::Header(func_name, mut names, mut types) => {
-                            name = Some(func_name);
-                            arg_names.append(&mut names);
-                            arg_types.append(&mut types);
-                        },
+                        FunctionType::Header(mut func_arguments) => {
+                            arguments.append(&mut func_arguments);
+                        }
                         FunctionType::Output(mut outputs) => output_types.append(&mut outputs),
                     }
                 }
 
-                if name.is_none() {
-                    return Err(parser.error("Malformed wast: function doesn't contain name"));
-                }
-
-                if arg_types.len() != arg_names.len() {
-                    return Err(parser.error("Malformed wast: function argument types count should be equal to argument names count"));
-                }
-
-                // It's has been already checked for None.
-                let name = name.unwrap();
                 Ok(Type::Function {
-                    name,
-                    arg_types,
-                    arg_names,
+                    arguments,
                     output_types,
                 })
             } else if lookahead.peek::<keyword::record>() {
