@@ -222,10 +222,10 @@ where
     MemoryView: wasm::structures::MemoryView,
     Instance: wasm::structures::Instance<Export, LocalImport, Memory, MemoryView>,
 {
-    let func_inputs = local_import.inputs();
+    let func_inputs = local_import.arguments();
 
     for (func_input_arg, value) in func_inputs.iter().zip(values.iter()) {
-        is_value_compatible_to_type(instance, &func_input_arg, value, instruction)?;
+        is_value_compatible_to_type(instance, &func_input_arg.ty, value, instruction)?;
     }
 
     Ok(())
@@ -363,7 +363,7 @@ pub(crate) mod tests {
             self.outputs.len()
         }
 
-        fn inputs(&self) -> &[InterfaceType] {
+        fn arguments(&self) -> &[InterfaceType] {
             &self.inputs
         }
 
@@ -391,7 +391,7 @@ pub(crate) mod tests {
             self.outputs.len()
         }
 
-        fn inputs(&self) -> &[InterfaceType] {
+        fn arguments(&self) -> &[InterfaceType] {
             &self.inputs
         }
 

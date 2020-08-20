@@ -3,6 +3,7 @@
 use crate::types::RecordType;
 use crate::{types::InterfaceType, values::InterfaceValue};
 use std::{cell::Cell, ops::Deref};
+use crate::ast::FunctionArg;
 
 pub trait TypedIndex: Copy + Clone {
     fn new(index: usize) -> Self;
@@ -43,7 +44,7 @@ impl LocalImportIndex for FunctionIndex {
 pub trait Export {
     fn inputs_cardinality(&self) -> usize;
     fn outputs_cardinality(&self) -> usize;
-    fn inputs(&self) -> &[InterfaceType];
+    fn arguments(&self) -> &[FunctionArg];
     fn outputs(&self) -> &[InterfaceType];
     fn call(&self, arguments: &[InterfaceValue]) -> Result<Vec<InterfaceValue>, ()>;
 }
@@ -51,7 +52,7 @@ pub trait Export {
 pub trait LocalImport {
     fn inputs_cardinality(&self) -> usize;
     fn outputs_cardinality(&self) -> usize;
-    fn inputs(&self) -> &[InterfaceType];
+    fn arguments(&self) -> &[FunctionArg];
     fn outputs(&self) -> &[InterfaceType];
     fn call(&self, arguments: &[InterfaceValue]) -> Result<Vec<InterfaceValue>, ()>;
 }
@@ -88,7 +89,7 @@ impl Export for () {
         0
     }
 
-    fn inputs(&self) -> &[InterfaceType] {
+    fn arguments(&self) -> &[FunctionArg] {
         &[]
     }
 
@@ -110,7 +111,7 @@ impl LocalImport for () {
         0
     }
 
-    fn inputs(&self) -> &[InterfaceType] {
+    fn arguments(&self) -> &[FunctionArg] {
         &[]
     }
 
