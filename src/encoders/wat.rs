@@ -85,7 +85,7 @@ impl ToString for &InterfaceType {
 impl ToString for &RecordType {
     fn to_string(&self) -> String {
         format!(
-            "record {} {{\n{fields}\n}}",
+            "record {} {{\n{fields}}}",
             self.name,
             fields = self
                 .fields
