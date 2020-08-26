@@ -85,7 +85,7 @@ impl ToString for &InterfaceType {
 impl ToString for &RecordType {
     fn to_string(&self) -> String {
         format!(
-            "record {} {fields}",
+            "record {} {{\n{fields}\n}}",
             self.name,
             fields = self
                 .fields
@@ -97,6 +97,7 @@ impl ToString for &RecordType {
                         field_type.name,
                         (&field_type.ty).to_string()
                     ));
+                    accumulator.push(',');
                     accumulator
                 }),
         )
@@ -179,6 +180,7 @@ fn encode_function_arguments(arguments: &[FunctionArg]) -> String {
                     accumulator.push_str(name);
                     accumulator.push_str(": ");
                     accumulator.push_str(&ty.to_string());
+                    accumulator.push(',');
                     accumulator
                 }
             )
