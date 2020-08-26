@@ -1,9 +1,9 @@
 #![allow(missing_docs)]
 
+use crate::ast::FunctionArg;
 use crate::types::RecordType;
 use crate::{types::InterfaceType, values::InterfaceValue};
 use std::{cell::Cell, ops::Deref};
-use crate::ast::FunctionArg;
 
 pub trait TypedIndex: Copy + Clone {
     fn new(index: usize) -> Self;

@@ -93,11 +93,10 @@ impl ToString for &RecordType {
                 .fold(String::new(), |mut accumulator, field_type| {
                     accumulator.push(' ');
                     accumulator.push_str(&format!(
-                        "{}: {}\n",
+                        "{}: {},\n",
                         field_type.name,
                         (&field_type.ty).to_string()
                     ));
-                    accumulator.push(',');
                     accumulator
                 }),
         )
@@ -173,17 +172,23 @@ fn encode_function_arguments(arguments: &[FunctionArg]) -> String {
     } else {
         format!(
             "\n  (param{})",
-            arguments.iter().fold(
-                String::new(),
-                |mut accumulator, FunctionArg { name, ty }| {
-                    accumulator.push(' ');
-                    accumulator.push_str(name);
-                    accumulator.push_str(": ");
-                    accumulator.push_str(&ty.to_string());
-                    accumulator.push(',');
-                    accumulator
-                }
-            )
+            arguments
+                .iter()
+                .fold(
+                    (String::new(), true),
+                    |(mut accumulator, is_first), FunctionArg { name, ty }| {
+                        if !is_first {
+                            accumulator.push(',');
+                        }
+
+                        accumulator.push(' ');
+                        accumulator.push_str(name);
+                        accumulator.push_str(": ");
+                        accumulator.push_str(&ty.to_string());
+                        (accumulator, false)
+                    }
+                )
+                .0
         )
     }
 }
