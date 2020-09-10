@@ -194,8 +194,6 @@ where
                     // TODO: check
                     let string = String::from_utf8(string_mem).unwrap();
                     values.push_back(InterfaceValue::String(string));
-
-                    utils::deallocate(instance, instruction, string_offset as _, string_size as _)?;
                 } else {
                     values.push_back(InterfaceValue::String(String::new()));
                 }
@@ -214,8 +212,6 @@ where
                     )?;
 
                     values.push_back(InterfaceValue::ByteArray(byte_array));
-
-                    utils::deallocate(instance, instruction, array_offset as _, array_size as _)?;
                 } else {
                     values.push_back(InterfaceValue::ByteArray(vec![]));
                 }
