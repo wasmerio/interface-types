@@ -31,6 +31,8 @@ executable_instruction!(
 
             super::check_function_signature(&**instance, local_or_import, &inputs, instruction)?;
 
+            log::trace!("call-core: calling {} with arguments: {:?}", function_index, inputs);
+
             let outputs = local_or_import.call(&inputs).map_err(|_| {
                 InstructionError::new(
                     instruction,
@@ -40,7 +42,7 @@ executable_instruction!(
                 )
             })?;
 
-
+            log::trace!("call-core: call to {} succeeded with result {:?}", function_index, outputs);
 
             for output in outputs.into_iter() {
                 runtime.stack.push(output)

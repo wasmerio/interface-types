@@ -13,6 +13,7 @@ executable_instruction!(
                 )
             })?;
 
+            log::trace!("swap2: swapping {:?}, {:?} values on the stack", values[0], values[1]);
             runtime.stack.push(values.remove(1));
             runtime.stack.push(values.remove(0));
 

@@ -15,19 +15,24 @@ macro_rules! lowering_lifting {
                         Some(InterfaceValue::$from_variant(value)) => {
                             runtime
                                 .stack
-                                .push(InterfaceValue::$to_variant(value.try_into().map_err(
-                                    |_| {
-                                        InstructionError::new(
-                                            instruction,
-                                            InstructionErrorKind::LoweringLifting {
-                                                from: InterfaceType::$from_variant,
-                                                to: InterfaceType::$to_variant
-                                            },
-                                        )
-                                    },
-                                )?))
-                        }
+                                .push({
+                                    let converted_value = InterfaceValue::$to_variant(value.try_into().map_err(
+                                        |_| {
+                                            InstructionError::new(
+                                                instruction,
+                                                InstructionErrorKind::LoweringLifting {
+                                                    from: InterfaceType::$from_variant,
+                                                    to: InterfaceType::$to_variant
+                                                },
+                                            )
+                                       },
+                                    )?);
 
+                                    log::trace!("{}: converting {:?} to {:?}", $instruction_name, value, converted_value);
+
+                                    converted_value
+                                })
+                        }
                         Some(wrong_value) => {
                             return Err(InstructionError::new(
                                 instruction,

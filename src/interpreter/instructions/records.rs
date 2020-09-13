@@ -288,6 +288,8 @@ where
             })?;
 
             let record = record_lift_memory_(&**instance, record_type, offset, instruction)?;
+
+            log::trace!("record.lift_memory: pushing {:?} on the stack", record);
             runtime.stack.push(record);
 
             Ok(())
@@ -349,6 +351,7 @@ where
             InterfaceValue::Record(values) => {
                 let record_ptr = record_lower_memory_(instance, instruction, values)?;
 
+                log::trace!("record.lower_memory: pushing {:?} on the stack", record_ptr);
                 result.push(record_ptr as _);
             }
         }
