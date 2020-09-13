@@ -4,7 +4,7 @@ use crate::vec1::Vec1;
 use serde::{Deserialize, Serialize};
 
 /// Represents the types supported by WIT.
-#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug, Clone, Hash, Serialize, Deserialize)]
 pub enum InterfaceType {
     /// A 8-bits signed integer.
     S8,
@@ -57,7 +57,7 @@ pub enum InterfaceType {
 }
 
 /// Represents a record field type.
-#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug, Clone, Hash, Serialize, Deserialize)]
 pub struct RecordFieldType {
     // TODO: make name optional to support structures with anonymous fields in Rust
     /// A field name.
@@ -68,7 +68,7 @@ pub struct RecordFieldType {
 }
 
 /// Represents a record type.
-#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug, Clone, Hash, Serialize, Deserialize)]
 pub struct RecordType {
     /// A record name.
     pub name: String,
