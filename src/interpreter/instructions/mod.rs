@@ -495,12 +495,32 @@ pub(crate) mod tests {
                 },
                 memory: Memory::new(vec![Cell::new(0); 128]),
                 wit_types: vec![Type::Record(RecordType {
+                    name: String::from("RecordType0"),
                     fields: vec1![
-                        InterfaceType::I32,
-                        InterfaceType::Record(RecordType {
-                            fields: vec1![InterfaceType::String, InterfaceType::F32],
-                        }),
-                        InterfaceType::I64,
+                        RecordFieldType {
+                            name: String::from("field_0"),
+                            ty: InterfaceType::I32,
+                        },
+                        RecordFieldType {
+                            name: String::from("field_1"),
+                            ty: InterfaceType::Record(RecordType {
+                                name: String::from("RecordType1"),
+                                fields: vec1![
+                                    RecordFieldType {
+                                        name: String::from("field_0"),
+                                        ty: InterfaceType::String,
+                                    },
+                                    RecordFieldType {
+                                        name: String::from("field1"),
+                                        ty: InterfaceType::F32
+                                    }
+                                ],
+                            }),
+                        },
+                        RecordFieldType {
+                            name: String::from("field_2"),
+                            ty: InterfaceType::I64,
+                        }
                     ],
                 })],
             }
@@ -525,6 +545,10 @@ pub(crate) mod tests {
 
         fn wit_type_by_id(&self, index: u32) -> Option<&Type> {
             self.wit_types.get(index as usize)
+        }
+
+        fn wit_record_by_id(&self, index: u64) -> Option<&RecordType> {
+            self.wit_types.get(index as _)
         }
     }
 }

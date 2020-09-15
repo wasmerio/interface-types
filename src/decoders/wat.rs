@@ -17,6 +17,10 @@ mod keyword {
     custom_keyword!(record);
     custom_keyword!(field);
 
+    // Special symbols
+    custom_keyword!(comma = ",");
+    custom_keyword!(colon = ":");
+
     // New types.
     custom_keyword!(s8);
     custom_keyword!(s16);
@@ -431,10 +435,25 @@ impl Parse<'_> for FunctionType {
                 let mut arguments = vec![];
 
                 while !parser.is_empty() {
-                    let arg_name: String = parser.parse()?;
+                    let arg_name = parser.step(|cursor| {
+                        cursor
+                            .id()
+                            .ok_or_else(|| cursor.error("expecting argument identifier"))
+                    })?;
+
+                    if !arg_name.ends_with(':') {
+                        parser.step(|cursor| {
+                            if let Some((":", rest)) = cursor.reserved() {
+                                return Ok(("", rest));
+                            }
+                            Err(cursor.error("expected : between an argument and a type"))
+                        })?;
+                    }
+
                     let arg_type: InterfaceType = parser.parse()?;
+
                     arguments.push(FunctionArg {
-                        name: arg_name,
+                        name: arg_name.trim_end_matches(':').to_string(),
                         ty: arg_type,
                     });
                 }

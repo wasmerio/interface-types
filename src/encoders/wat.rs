@@ -93,7 +93,7 @@ impl ToString for &RecordType {
                 .fold(String::new(), |mut accumulator, field_type| {
                     accumulator.push(' ');
                     accumulator.push_str(&format!(
-                        "{}: {},\n",
+                        "{}: {}\n",
                         field_type.name,
                         (&field_type.ty).to_string()
                     ));
@@ -172,23 +172,16 @@ fn encode_function_arguments(arguments: &[FunctionArg]) -> String {
     } else {
         format!(
             "\n  (param{})",
-            arguments
-                .iter()
-                .fold(
-                    (String::new(), true),
-                    |(mut accumulator, is_first), FunctionArg { name, ty }| {
-                        if !is_first {
-                            accumulator.push(',');
-                        }
-
-                        accumulator.push(' ');
-                        accumulator.push_str(name);
-                        accumulator.push_str(": ");
-                        accumulator.push_str(&ty.to_string());
-                        (accumulator, false)
-                    }
-                )
-                .0
+            arguments.iter().fold(
+                String::new(),
+                |mut accumulator, FunctionArg { name, ty }| {
+                    accumulator.push_str(" $");
+                    accumulator.push_str(name);
+                    accumulator.push_str(": ");
+                    accumulator.push_str(&ty.to_string());
+                    accumulator
+                }
+            )
         )
     }
 }
@@ -290,14 +283,16 @@ impl<'input> ToString for &Interfaces<'input> {
     fn to_string(&self) -> String {
         let mut output = String::new();
 
-        let types = self
-            .types
-            .iter()
-            .fold(String::new(), |mut accumulator, ty| {
-                accumulator.push('\n');
-                accumulator.push_str(&ty.to_string());
-                accumulator
-            });
+        let types =
+            self.types
+                .iter()
+                .enumerate()
+                .fold(String::new(), |mut accumulator, (id, ty)| {
+                    accumulator.push('\n');
+                    accumulator.push_str(&ty.to_string());
+                    accumulator.push_str(&format!("   ;; {}", id));
+                    accumulator
+                });
 
         let imports = self
             .imports
