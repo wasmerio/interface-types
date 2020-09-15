@@ -1,6 +1,6 @@
 //! Parse the WIT binary representation into an [AST](crate::ast).
 
-use crate::{ast::*, interpreter::Instruction, types::*, vec1::Vec1};
+use crate::{ast::*, interpreter::Instruction, types::*};
 use nom::{
     error::{make_error, ErrorKind, ParseError},
     Err, IResult,
@@ -70,6 +70,32 @@ fn uleb<'input, E: ParseError<&'input [u8]>>(input: &'input [u8]) -> IResult<&'i
     ))
 }
 
+fn record_field<'input, E: ParseError<&'input [u8]>>(
+    mut input: &'input [u8],
+) -> IResult<&'input [u8], RecordFieldType, E> {
+    if input.is_empty() {
+        return Err(Err::Error(make_error(input, ErrorKind::Eof)));
+    }
+
+    consume!((input, name) = owned_string(input)?);
+    consume!((input, ty) = ty(input)?);
+
+    Ok((input, RecordFieldType { name, ty }))
+}
+
+fn function_arg<'input, E: ParseError<&'input [u8]>>(
+    mut input: &'input [u8],
+) -> IResult<&'input [u8], FunctionArg, E> {
+    if input.is_empty() {
+        return Err(Err::Error(make_error(input, ErrorKind::Eof)));
+    }
+
+    consume!((input, name) = owned_string(input)?);
+    consume!((input, ty) = ty(input)?);
+
+    Ok((input, FunctionArg { name, ty }))
+}
+
 /// Parse an interface type.
 fn ty<'input, E: ParseError<&'input [u8]>>(
     mut input: &'input [u8],
@@ -97,9 +123,9 @@ fn ty<'input, E: ParseError<&'input [u8]>>(
         0x0c => InterfaceType::I32,
         0x0d => InterfaceType::I64,
         0x0e => {
-            consume!((input, record_type) = record_type(input)?);
+            consume!((input, record_id) = uleb(input)?);
 
-            InterfaceType::Record(record_type)
+            InterfaceType::Record(record_id)
         }
         _ => return Err(Err::Error(make_error(input, ErrorKind::ParseTo))),
     };
@@ -111,11 +137,15 @@ fn ty<'input, E: ParseError<&'input [u8]>>(
 fn record_type<'input, E: ParseError<&'input [u8]>>(
     input: &'input [u8],
 ) -> IResult<&'input [u8], RecordType, E> {
-    let (output, fields) = list(input, ty)?;
+    use crate::vec1::Vec1;
+
+    let (output, name) = owned_string(input)?;
+    let (output, fields) = list(output, record_field)?;
 
     Ok((
         output,
         RecordType {
+            name,
             fields: Vec1::new(fields).expect("Record must have at least one field, zero given."),
         },
     ))
@@ -262,34 +292,35 @@ fn instruction<'input, E: ParseError<&'input [u8]>>(
         0x38 => (input, Instruction::ByteArrayLowerMemory),
         0x39 => (input, Instruction::ByteArraySize),
 
-        0x25 => {
-            consume!((input, argument_0) = uleb(input)?);
+        /*
+               0x25 => {
+                   consume!((input, argument_0) = uleb(input)?);
 
-            (
-                input,
-                Instruction::RecordLift {
-                    type_index: argument_0 as u32,
-                },
-            )
-        }
-        0x26 => {
-            consume!((input, argument_0) = uleb(input)?);
+                   (
+                       input,
+                       Instruction::RecordLift {
+                           type_index: argument_0 as u32,
+                       },
+                   )
+               }
+               0x26 => {
+                   consume!((input, argument_0) = uleb(input)?);
 
-            (
-                input,
-                Instruction::RecordLower {
-                    type_index: argument_0 as u32,
-                },
-            )
-        }
-
+                   (
+                       input,
+                       Instruction::RecordLower {
+                           type_index: argument_0 as u32,
+                       },
+                   )
+               }
+        */
         0x3A => {
             consume!((input, argument_0) = uleb(input)?);
 
             (
                 input,
                 Instruction::RecordLiftMemory {
-                    type_index: argument_0 as u32,
+                    record_type_id: argument_0 as u32,
                 },
             )
         }
@@ -299,7 +330,7 @@ fn instruction<'input, E: ParseError<&'input [u8]>>(
             (
                 input,
                 Instruction::RecordLowerMemory {
-                    type_index: argument_0 as u32,
+                    record_type_id: argument_0 as u32,
                 },
             )
         }
@@ -328,15 +359,11 @@ fn types<'input, E: ParseError<&'input [u8]>>(
 
         match type_kind {
             TypeKind::Function => {
-                consume!((input, name) = string(input)?);
-                consume!((input, arg_types) = list(input, ty)?);
-                consume!((input, arg_names) = list(input, owned_string)?);
+                consume!((input, arguments) = list(input, function_arg)?);
                 consume!((input, output_types) = list(input, ty)?);
 
                 types.push(Type::Function {
-                    name: String::from(name),
-                    arg_types,
-                    arg_names,
+                    arguments,
                     output_types,
                 });
             }
@@ -861,8 +888,11 @@ mod tests {
                 Instruction::StringLiftMemory,
                 Instruction::StringLowerMemory,
                 Instruction::StringSize,
+                /*
                 Instruction::RecordLift { type_index: 1 },
                 Instruction::RecordLower { type_index: 1 },
+
+                 */
             ],
         ));
 

@@ -85,13 +85,18 @@ impl ToString for &InterfaceType {
 impl ToString for &RecordType {
     fn to_string(&self) -> String {
         format!(
-            "record{fields}",
+            "record {} {{\n{fields}}}",
+            self.name,
             fields = self
                 .fields
                 .iter()
-                .fold(String::new(), |mut accumulator, interface_type| {
+                .fold(String::new(), |mut accumulator, field_type| {
                     accumulator.push(' ');
-                    accumulator.push_str(&format!("(field {})", &interface_type.to_string()));
+                    accumulator.push_str(&format!(
+                        "{}: {}\n",
+                        field_type.name,
+                        (&field_type.ty).to_string()
+                    ));
                     accumulator
                 }),
         )
@@ -142,14 +147,16 @@ impl ToString for &Instruction {
             Instruction::ByteArrayLiftMemory => "byte_array.lift_memory".into(),
             Instruction::ByteArrayLowerMemory => "byte_array.lower_memory".into(),
             Instruction::ByteArraySize => "byte_array.size".into(),
+            /*
             Instruction::RecordLift { type_index } => format!("record.lift {}", type_index),
             Instruction::RecordLower { type_index } => format!("record.lower {}", type_index),
-            Instruction::RecordLiftMemory { type_index } => {
-                format!("record.lift_memory {}", type_index)
-            }
-            Instruction::RecordLowerMemory { type_index } => {
-                format!("record.lower_memory {}", type_index)
-            }
+             */
+            Instruction::RecordLiftMemory {
+                record_type_id: type_index,
+            } => format!("record.lift_memory {}", type_index),
+            Instruction::RecordLowerMemory {
+                record_type_id: type_index,
+            } => format!("record.lower_memory {}", type_index),
             Instruction::Dup => "dup".into(),
             Instruction::Swap2 => "swap2".into(),
         }
@@ -158,17 +165,17 @@ impl ToString for &Instruction {
 
 /// Encode a list of `InterfaceType` representing inputs into a
 /// string.
-fn encode_arguments(arg_types: &[InterfaceType], arg_names: &[String]) -> String {
+fn encode_function_arguments(arguments: &[FunctionArg]) -> String {
     // here we know that arg_names and arg_types have the same length
-    if arg_names.is_empty() {
+    if arguments.is_empty() {
         String::from("")
     } else {
         format!(
             "\n  (param{})",
-            arg_names.iter().zip(arg_types.iter()).fold(
+            arguments.iter().fold(
                 String::new(),
-                |mut accumulator, (name, ty)| {
-                    accumulator.push(' ');
+                |mut accumulator, FunctionArg { name, ty }| {
+                    accumulator.push_str(" $");
                     accumulator.push_str(name);
                     accumulator.push_str(": ");
                     accumulator.push_str(&ty.to_string());
@@ -203,14 +210,11 @@ impl<'input> ToString for &Type {
     fn to_string(&self) -> String {
         match self {
             Type::Function {
-                name,
-                arg_types,
-                arg_names,
+                arguments,
                 output_types,
             } => format!(
-                r#"(@interface type (func {name} {args}{output_types}))"#,
-                name = name,
-                args = encode_arguments(arg_types, arg_names),
+                r#"(@interface type (func {args} {output_types}))"#,
+                args = encode_function_arguments(arguments),
                 output_types = output_types_to_result(&output_types),
             ),
 
@@ -279,14 +283,16 @@ impl<'input> ToString for &Interfaces<'input> {
     fn to_string(&self) -> String {
         let mut output = String::new();
 
-        let types = self
-            .types
-            .iter()
-            .fold(String::new(), |mut accumulator, ty| {
-                accumulator.push('\n');
-                accumulator.push_str(&ty.to_string());
-                accumulator
-            });
+        let types =
+            self.types
+                .iter()
+                .enumerate()
+                .fold(String::new(), |mut accumulator, (id, ty)| {
+                    accumulator.push('\n');
+                    accumulator.push_str(&ty.to_string());
+                    accumulator.push_str(&format!("   ;; {}", id));
+                    accumulator
+                });
 
         let imports = self
             .imports
@@ -485,8 +491,10 @@ mod tests {
             (&Instruction::StringLiftMemory).to_string(),
             (&Instruction::StringLowerMemory).to_string(),
             (&Instruction::StringSize).to_string(),
+            /*
             (&Instruction::RecordLift { type_index: 42 }).to_string(),
             (&Instruction::RecordLower { type_index: 42 }).to_string(),
+             */
         ];
         let outputs = vec![
             "arg.get 7",

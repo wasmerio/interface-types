@@ -1,6 +1,7 @@
 //! The error module contains all the data structures that represent
 //! an error.
 
+use crate::values::InterfaceValue;
 use crate::{ast::TypeKind, interpreter::Instruction, types::InterfaceType};
 use std::{
     error::Error,
@@ -21,7 +22,7 @@ pub type InterpreterResult<T> = Result<T, InstructionError>;
 #[derive(Debug)]
 pub struct WasmValueNativeCastError {
     /// The initial type.
-    pub from: InterfaceType,
+    pub from: InterfaceValue,
 
     /// The targeted type.
     ///
@@ -98,7 +99,7 @@ pub enum InstructionErrorKind {
         expected_type: InterfaceType,
 
         /// The received type.
-        received_type: InterfaceType,
+        received_value: InterfaceValue,
     },
 
     /// Need to read some values from the stack, but it doesn't
@@ -163,6 +164,15 @@ pub enum InstructionErrorKind {
         type_index: u32,
     },
 
+    /// The searched by name type doesn't exist.
+    RecordTypeByNameIsMissing {
+        /// The record type name.
+        record_type_id: u64,
+    },
+
+    /// Corrupted record's been popped from the stack.
+    CorruptedRecord(String),
+
     /// Read a type that has an unexpected type.
     InvalidTypeKind {
         /// The expected kind.
@@ -199,11 +209,11 @@ impl Display for InstructionErrorKind {
 
             Self::InvalidValueOnTheStack {
                 expected_type,
-                received_type,
+                received_value,
             } => write!(
                 formatter,
-                "read a value of type `{:?}` from the stack, but the type `{:?}` was expected",
-                received_type, expected_type,
+                "read a value `{:?}` from the stack, that can't be converted to `{:?}`",
+                received_value, expected_type,
             ),
 
             Self::StackIsTooSmall { needed } => write!(
@@ -261,6 +271,19 @@ impl Display for InstructionErrorKind {
                 "read a type of kind `{:?}`, but the kind `{:?}` was expected",
                 received_kind, expected_kind
             ),
+
+            Self::RecordTypeByNameIsMissing  { record_type_id: type_name } => write!(
+                formatter,
+                "type with `{}` is missing in a Wasm binary",
+                type_name
+            ),
+
+            Self::CorruptedRecord(err) => write!(
+                formatter,
+                "{}",
+                err
+            ),
+
             Self::SerdeError(err) => write!(
                 formatter,
                 "serde error: {}", err,

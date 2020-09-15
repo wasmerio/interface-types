@@ -17,6 +17,10 @@ mod keyword {
     custom_keyword!(record);
     custom_keyword!(field);
 
+    // Special symbols
+    custom_keyword!(comma = ",");
+    custom_keyword!(colon = ":");
+
     // New types.
     custom_keyword!(s8);
     custom_keyword!(s16);
@@ -154,22 +158,31 @@ impl Parse<'_> for RecordType {
     fn parse(parser: Parser<'_>) -> Result<Self> {
         parser.parse::<keyword::record>()?;
 
+        parser.parse::<keyword::string>()?;
+        let record_name = parser.parse()?;
+
         let mut fields = vec![];
 
         while !parser.is_empty() {
             fields.push(parser.parens(|parser| {
-                parser.parse::<keyword::field>()?;
+                parser.parse::<keyword::string>()?;
+                let name = parser.parse()?;
 
-                parser.parse()
+                parser.parse::<keyword::field>()?;
+                let ty = parser.parse()?;
+
+                Ok(RecordFieldType { name, ty })
             })?);
         }
 
         Ok(RecordType {
+            name: record_name,
             fields: Vec1::new(fields).expect("Record must have at least one field, zero given."),
         })
     }
 }
 
+#[allow(clippy::suspicious_else_formatting)]
 impl<'a> Parse<'a> for Instruction {
     #[allow(clippy::cognitive_complexity)]
     fn parse(parser: Parser<'a>) -> Result<Self> {
@@ -339,7 +352,9 @@ impl<'a> Parse<'a> for Instruction {
             parser.parse::<keyword::byte_array_size>()?;
 
             Ok(Instruction::ByteArraySize)
-        } else if lookahead.peek::<keyword::record_lift>() {
+        }
+        /*
+        else if lookahead.peek::<keyword::record_lift>() {
             parser.parse::<keyword::record_lift>()?;
 
             Ok(Instruction::RecordLift {
@@ -351,17 +366,19 @@ impl<'a> Parse<'a> for Instruction {
             Ok(Instruction::RecordLower {
                 type_index: parser.parse()?,
             })
-        } else if lookahead.peek::<keyword::record_lift_memory>() {
+        }
+            */
+        else if lookahead.peek::<keyword::record_lift_memory>() {
             parser.parse::<keyword::record_lift_memory>()?;
 
             Ok(Instruction::RecordLiftMemory {
-                type_index: parser.parse()?,
+                record_type_id: parser.parse()?,
             })
         } else if lookahead.peek::<keyword::record_lower_memory>() {
             parser.parse::<keyword::record_lower_memory>()?;
 
             Ok(Instruction::RecordLowerMemory {
-                type_index: parser.parse()?,
+                record_type_id: parser.parse()?,
             })
         } else if lookahead.peek::<keyword::dup>() {
             parser.parse::<keyword::dup>()?;
@@ -403,7 +420,7 @@ impl Parse<'_> for AtInterface {
 
 #[derive(PartialEq, Debug)]
 enum FunctionType {
-    Header(String, Vec<String>, Vec<InterfaceType>),
+    Header(Vec<FunctionArg>),
     Output(Vec<InterfaceType>),
 }
 
@@ -414,17 +431,34 @@ impl Parse<'_> for FunctionType {
 
             if lookahead.peek::<keyword::param>() {
                 parser.parse::<keyword::param>()?;
-                let func_name = parser.parse()?;
 
-                let mut names = vec![];
-                let mut types = vec![];
+                let mut arguments = vec![];
 
                 while !parser.is_empty() {
-                    names.push(parser.parse()?);
-                    types.push(parser.parse()?);
+                    let arg_name = parser.step(|cursor| {
+                        cursor
+                            .id()
+                            .ok_or_else(|| cursor.error("expecting argument identifier"))
+                    })?;
+
+                    if !arg_name.ends_with(':') {
+                        parser.step(|cursor| {
+                            if let Some((":", rest)) = cursor.reserved() {
+                                return Ok(("", rest));
+                            }
+                            Err(cursor.error("expected : between an argument and a type"))
+                        })?;
+                    }
+
+                    let arg_type: InterfaceType = parser.parse()?;
+
+                    arguments.push(FunctionArg {
+                        name: arg_name.trim_end_matches(':').to_string(),
+                        ty: arg_type,
+                    });
                 }
 
-                Ok(FunctionType::Header(func_name, names, types))
+                Ok(FunctionType::Header(arguments))
             } else if lookahead.peek::<keyword::result>() {
                 parser.parse::<keyword::result>()?;
 
@@ -491,38 +525,22 @@ impl<'a> Parse<'a> for Type {
             if lookahead.peek::<keyword::func>() {
                 parser.parse::<keyword::func>()?;
 
-                let mut arg_types = vec![];
-                let mut arg_names = vec![];
+                let mut arguments = vec![];
                 let mut output_types = vec![];
-                let mut name: Option<String> = None;
 
                 while !parser.is_empty() {
                     let function_type = parser.parse::<FunctionType>()?;
 
                     match function_type {
-                        FunctionType::Header(func_name, mut names, mut types) => {
-                            name = Some(func_name);
-                            arg_names.append(&mut names);
-                            arg_types.append(&mut types);
-                        },
+                        FunctionType::Header(mut func_arguments) => {
+                            arguments.append(&mut func_arguments);
+                        }
                         FunctionType::Output(mut outputs) => output_types.append(&mut outputs),
                     }
                 }
 
-                if name.is_none() {
-                    return Err(parser.error("Malformed wast: function doesn't contain name"));
-                }
-
-                if arg_types.len() != arg_names.len() {
-                    return Err(parser.error("Malformed wast: function argument types count should be equal to argument names count"));
-                }
-
-                // It's has been already checked for None.
-                let name = name.unwrap();
                 Ok(Type::Function {
-                    name,
-                    arg_types,
-                    arg_names,
+                    arguments,
                     output_types,
                 })
             } else if lookahead.peek::<keyword::record>() {
@@ -878,8 +896,10 @@ mod tests {
             Instruction::StringLiftMemory,
             Instruction::StringLowerMemory,
             Instruction::StringSize,
+            /*
             Instruction::RecordLift { type_index: 42 },
             Instruction::RecordLower { type_index: 42 },
+             */
         ];
 
         assert_eq!(inputs.len(), outputs.len());

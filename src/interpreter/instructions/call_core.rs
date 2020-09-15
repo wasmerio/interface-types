@@ -2,13 +2,12 @@ use crate::{
     errors::{InstructionError, InstructionErrorKind},
     interpreter::wasm::structures::{FunctionIndex, TypedIndex},
     interpreter::Instruction,
-    types::InterfaceType,
 };
 
 executable_instruction!(
     call_core(function_index: u32, instruction: Instruction) -> _ {
         move |runtime| -> _ {
-            let instance = &mut runtime.wasm_instance;
+            let instance = &runtime.wasm_instance;
             let index = FunctionIndex::new(function_index as usize);
 
             let local_or_import = instance.local_or_import(index).ok_or_else(|| {
@@ -29,21 +28,10 @@ executable_instruction!(
                     },
                 )
             })?;
-            let input_types = inputs
-                .iter()
-                .map(Into::into)
-                .collect::<Vec<InterfaceType>>();
 
-            if input_types != local_or_import.inputs() {
-                return Err(InstructionError::new(
-                    instruction,
-                    InstructionErrorKind::LocalOrImportSignatureMismatch {
-                        function_index,
-                        expected: (local_or_import.inputs().to_vec(), vec![]),
-                        received: (input_types, vec![]),
-                    },
-                ));
-            }
+            super::check_function_signature(&**instance, local_or_import, &inputs, instruction)?;
+
+            log::trace!("call-core: calling {} with arguments: {:?}", function_index, inputs);
 
             let outputs = local_or_import.call(&inputs).map_err(|_| {
                 InstructionError::new(
@@ -54,7 +42,7 @@ executable_instruction!(
                 )
             })?;
 
-
+            log::trace!("call-core: call to {} succeeded with result {:?}", function_index, outputs);
 
             for output in outputs.into_iter() {
                 runtime.stack.push(output)

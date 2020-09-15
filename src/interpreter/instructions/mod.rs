@@ -7,6 +7,9 @@ mod records;
 mod strings;
 mod swap2;
 
+use crate::interpreter::wasm;
+use crate::types::InterfaceType;
+use crate::vec1::Vec1;
 use crate::{
     errors::{InstructionError, InstructionErrorKind, InstructionResult, WasmValueNativeCastError},
     values::{InterfaceValue, NativeType},
@@ -153,6 +156,7 @@ pub enum Instruction {
     /// The `string.size` instruction.
     ByteArraySize,
 
+    /*
     /// The `record.lift` instruction.
     RecordLift {
         /// The type index of the record.
@@ -165,16 +169,17 @@ pub enum Instruction {
         type_index: u32,
     },
 
+     */
     /// The `record.lift_memory` instruction.
     RecordLiftMemory {
         /// The type index of the record.
-        type_index: u32,
+        record_type_id: u32,
     },
 
     /// The `record.lower_memory` instruction.
     RecordLowerMemory {
         /// The type index of the record.
-        type_index: u32,
+        record_type_id: u32,
     },
 
     /// The `dup` instructions.
@@ -197,6 +202,143 @@ where
         .map_err(|error| InstructionError::new(instruction, InstructionErrorKind::ToNative(error)))
 }
 
+pub(crate) fn check_function_signature<
+    'instance,
+    Instance,
+    Export,
+    LocalImport,
+    Memory,
+    MemoryView,
+>(
+    instance: &'instance Instance,
+    local_import: &LocalImport,
+    values: &[InterfaceValue],
+    instruction: Instruction,
+) -> Result<(), InstructionError>
+where
+    Export: wasm::structures::Export + 'instance,
+    LocalImport: wasm::structures::LocalImport + 'instance,
+    Memory: wasm::structures::Memory<MemoryView> + 'instance,
+    MemoryView: wasm::structures::MemoryView,
+    Instance: wasm::structures::Instance<Export, LocalImport, Memory, MemoryView>,
+{
+    let func_inputs = local_import.arguments();
+
+    for (func_input_arg, value) in func_inputs.iter().zip(values.iter()) {
+        is_value_compatible_to_type(instance, &func_input_arg.ty, value, instruction)?;
+    }
+
+    Ok(())
+}
+
+/// Check whether the provided value could be a value of the provided type.
+pub(crate) fn is_value_compatible_to_type<
+    'instance,
+    Instance,
+    Export,
+    LocalImport,
+    Memory,
+    MemoryView,
+>(
+    instance: &'instance Instance,
+    interface_type: &InterfaceType,
+    interface_value: &InterfaceValue,
+    instruction: Instruction,
+) -> Result<(), InstructionError>
+where
+    Export: wasm::structures::Export + 'instance,
+    LocalImport: wasm::structures::LocalImport + 'instance,
+    Memory: wasm::structures::Memory<MemoryView> + 'instance,
+    MemoryView: wasm::structures::MemoryView,
+    Instance: wasm::structures::Instance<Export, LocalImport, Memory, MemoryView>,
+{
+    match (&interface_type, interface_value) {
+        (InterfaceType::S8, InterfaceValue::S8(_)) => Ok(()),
+        (InterfaceType::S16, InterfaceValue::S16(_)) => Ok(()),
+        (InterfaceType::S32, InterfaceValue::S32(_)) => Ok(()),
+        (InterfaceType::S64, InterfaceValue::S64(_)) => Ok(()),
+        (InterfaceType::U8, InterfaceValue::U8(_)) => Ok(()),
+        (InterfaceType::U16, InterfaceValue::U16(_)) => Ok(()),
+        (InterfaceType::U32, InterfaceValue::U32(_)) => Ok(()),
+        (InterfaceType::U64, InterfaceValue::U64(_)) => Ok(()),
+        (InterfaceType::I32, InterfaceValue::I32(_)) => Ok(()),
+        (InterfaceType::I64, InterfaceValue::I64(_)) => Ok(()),
+        (InterfaceType::F32, InterfaceValue::F32(_)) => Ok(()),
+        (InterfaceType::F64, InterfaceValue::F64(_)) => Ok(()),
+        (InterfaceType::String, InterfaceValue::String(_)) => Ok(()),
+        (InterfaceType::ByteArray, InterfaceValue::ByteArray(_)) => Ok(()),
+        (InterfaceType::Record(ref record_type_id), InterfaceValue::Record(record_fields)) => {
+            is_record_fields_compatible_to_type(
+                instance,
+                *record_type_id,
+                record_fields,
+                instruction,
+            )?;
+
+            Ok(())
+        }
+        _ => Err(InstructionError::new(
+            instruction,
+            InstructionErrorKind::InvalidValueOnTheStack {
+                expected_type: interface_type.clone(),
+                received_value: interface_value.clone(),
+            },
+        )),
+    }
+}
+
+pub(crate) fn is_record_fields_compatible_to_type<
+    'instance,
+    Instance,
+    Export,
+    LocalImport,
+    Memory,
+    MemoryView,
+>(
+    instance: &'instance Instance,
+    record_type_id: u64,
+    record_fields: &[InterfaceValue],
+    instruction: Instruction,
+) -> Result<(), InstructionError>
+where
+    Export: wasm::structures::Export + 'instance,
+    LocalImport: wasm::structures::LocalImport + 'instance,
+    Memory: wasm::structures::Memory<MemoryView> + 'instance,
+    MemoryView: wasm::structures::MemoryView,
+    Instance: wasm::structures::Instance<Export, LocalImport, Memory, MemoryView>,
+{
+    let record_type = instance.wit_record_by_id(record_type_id).ok_or_else(|| {
+        InstructionError::new(
+            instruction,
+            InstructionErrorKind::RecordTypeByNameIsMissing { record_type_id },
+        )
+    })?;
+
+    if record_fields.len() != record_type.fields.len() {
+        return Err(InstructionError::new(
+            instruction,
+            InstructionErrorKind::InvalidValueOnTheStack {
+                expected_type: InterfaceType::Record(record_type_id),
+                // unwrap is safe here - len's been already checked
+                received_value: InterfaceValue::Record(Vec1::new(record_fields.to_vec()).unwrap()),
+            },
+        ));
+    }
+
+    for (record_type_field, record_value_field) in
+        record_type.fields.iter().zip(record_fields.iter())
+    {
+        is_value_compatible_to_type(
+            instance,
+            &record_type_field.ty,
+            record_value_field,
+            instruction,
+        )?;
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
     use crate::{ast::*, interpreter::wasm, types::*, values::*};
@@ -217,7 +359,7 @@ pub(crate) mod tests {
             self.outputs.len()
         }
 
-        fn inputs(&self) -> &[InterfaceType] {
+        fn arguments(&self) -> &[InterfaceType] {
             &self.inputs
         }
 
@@ -245,7 +387,7 @@ pub(crate) mod tests {
             self.outputs.len()
         }
 
-        fn inputs(&self) -> &[InterfaceType] {
+        fn arguments(&self) -> &[InterfaceType] {
             &self.inputs
         }
 
@@ -353,12 +495,32 @@ pub(crate) mod tests {
                 },
                 memory: Memory::new(vec![Cell::new(0); 128]),
                 wit_types: vec![Type::Record(RecordType {
+                    name: String::from("RecordType0"),
                     fields: vec1![
-                        InterfaceType::I32,
-                        InterfaceType::Record(RecordType {
-                            fields: vec1![InterfaceType::String, InterfaceType::F32],
-                        }),
-                        InterfaceType::I64,
+                        RecordFieldType {
+                            name: String::from("field_0"),
+                            ty: InterfaceType::I32,
+                        },
+                        RecordFieldType {
+                            name: String::from("field_1"),
+                            ty: InterfaceType::Record(RecordType {
+                                name: String::from("RecordType1"),
+                                fields: vec1![
+                                    RecordFieldType {
+                                        name: String::from("field_0"),
+                                        ty: InterfaceType::String,
+                                    },
+                                    RecordFieldType {
+                                        name: String::from("field1"),
+                                        ty: InterfaceType::F32
+                                    }
+                                ],
+                            }),
+                        },
+                        RecordFieldType {
+                            name: String::from("field_2"),
+                            ty: InterfaceType::I64,
+                        }
                     ],
                 })],
             }
@@ -381,8 +543,12 @@ pub(crate) mod tests {
             Some(&self.memory)
         }
 
-        fn wit_type(&self, index: u32) -> Option<&Type> {
+        fn wit_type_by_id(&self, index: u32) -> Option<&Type> {
             self.wit_types.get(index as usize)
+        }
+
+        fn wit_record_by_id(&self, index: u64) -> Option<&RecordType> {
+            self.wit_types.get(index as _)
         }
     }
 }

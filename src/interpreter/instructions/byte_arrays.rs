@@ -59,6 +59,8 @@ executable_instruction!(
                 .map(Cell::get)
                 .collect();
 
+            log::trace!("bytearray.lift_memory: pushing {:?} on the stack", data);
+
             runtime.stack.push(InterfaceValue::ByteArray(data));
 
             Ok(())
@@ -104,6 +106,8 @@ executable_instruction!(
                 memory_view[byte_array_pointer as usize + nth].set(*byte);
             }
 
+            log::trace!("bytearray.lower_memory: pushing {}, {} on the stack", byte_array_pointer, byte_array_length);
+
             runtime.stack.push(InterfaceValue::I32(byte_array_pointer as i32));
             runtime.stack.push(InterfaceValue::I32(byte_array_length));
 
@@ -127,7 +131,7 @@ executable_instruction!(
                     instruction,
                     InstructionErrorKind::InvalidValueOnTheStack {
                         expected_type: InterfaceType::ByteArray,
-                        received_type: (&value).into(),
+                        received_value: value,
                     },
                 )),
 

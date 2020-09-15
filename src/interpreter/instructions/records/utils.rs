@@ -42,7 +42,7 @@ where
 }
 
 pub(super) fn write_to_instance_mem<'instance, Instance, Export, LocalImport, Memory, MemoryView>(
-    instance: &'instance mut Instance,
+    instance: &'instance Instance,
     instruction: Instruction,
     bytes: &[u8],
 ) -> Result<i32, InstructionError>
@@ -74,7 +74,7 @@ where
 }
 
 pub(super) fn allocate<'instance, Instance, Export, LocalImport, Memory, MemoryView>(
-    instance: &'instance mut Instance,
+    instance: &'instance Instance,
     instruction: Instruction,
     size: i32,
 ) -> Result<i32, InstructionError>
@@ -105,7 +105,7 @@ where
 }
 
 pub(super) fn deallocate<'instance, Instance, Export, LocalImport, Memory, MemoryView>(
-    instance: &'instance mut Instance,
+    instance: &'instance Instance,
     instruction: Instruction,
     mem_ptr: i32,
     size: i32,
@@ -128,7 +128,7 @@ where
 }
 
 fn call_core<'instance, Instance, Export, LocalImport, Memory, MemoryView>(
-    instance: &'instance mut Instance,
+    instance: &'instance Instance,
     function_index: u32,
     instruction: Instruction,
     inputs: Vec<InterfaceValue>,
@@ -147,20 +147,14 @@ where
             InstructionErrorKind::LocalOrImportIsMissing { function_index },
         )
     })?;
-    let input_types = inputs
-        .iter()
-        .map(Into::into)
-        .collect::<Vec<InterfaceType>>();
-    if input_types != local_or_import.inputs() {
-        return Err(InstructionError::new(
-            instruction,
-            InstructionErrorKind::LocalOrImportSignatureMismatch {
-                function_index,
-                expected: (local_or_import.inputs().to_vec(), vec![]),
-                received: (input_types, vec![]),
-            },
-        ));
-    }
+
+    crate::interpreter::instructions::check_function_signature(
+        instance,
+        local_or_import,
+        &inputs,
+        instruction,
+    )?;
+
     let outputs = local_or_import.call(&inputs).map_err(|_| {
         InstructionError::new(
             instruction,

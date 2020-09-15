@@ -4,7 +4,7 @@ use crate::vec1::Vec1;
 use serde::{Deserialize, Serialize};
 
 /// Represents the types supported by WIT.
-#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug, Clone, Hash, Serialize, Deserialize)]
 pub enum InterfaceType {
     /// A 8-bits signed integer.
     S8,
@@ -51,15 +51,42 @@ pub enum InterfaceType {
     /// A 64-bits integer (as defiend in WebAssembly core).
     I64,
 
-    /// A record.
-    Record(RecordType),
+    /// A record contains record index from interfaces AST.
+    Record(u64),
+}
+
+/// Represents a record field type.
+#[derive(PartialEq, Eq, Debug, Clone, Hash, Serialize, Deserialize)]
+pub struct RecordFieldType {
+    // TODO: make name optional to support structures with anonymous fields in Rust
+    /// A field name.
+    pub name: String,
+
+    /// A field type.
+    pub ty: InterfaceType,
 }
 
 /// Represents a record type.
-#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug, Clone, Hash, Serialize, Deserialize)]
 pub struct RecordType {
-    /// Types representing the fields.
+    /// A record name.
+    pub name: String,
+
+    /// Types and names representing the fields.
     /// A record must have at least one field, hence the
     /// [`Vec1`][crate::vec1::Vec1].
-    pub fields: Vec1<InterfaceType>,
+    pub fields: Vec1<RecordFieldType>,
+}
+
+impl Default for RecordType {
+    fn default() -> Self {
+        Self {
+            name: String::new(),
+            fields: Vec1::new(vec![RecordFieldType {
+                name: String::new(),
+                ty: InterfaceType::S8,
+            }])
+            .unwrap(),
+        }
+    }
 }

@@ -1,6 +1,8 @@
 #![allow(missing_docs)]
 
-use crate::{ast, types::InterfaceType, values::InterfaceValue};
+use crate::ast::FunctionArg;
+use crate::types::RecordType;
+use crate::{types::InterfaceType, values::InterfaceValue};
 use std::{cell::Cell, ops::Deref};
 
 pub trait TypedIndex: Copy + Clone {
@@ -42,7 +44,7 @@ impl LocalImportIndex for FunctionIndex {
 pub trait Export {
     fn inputs_cardinality(&self) -> usize;
     fn outputs_cardinality(&self) -> usize;
-    fn inputs(&self) -> &[InterfaceType];
+    fn arguments(&self) -> &[FunctionArg];
     fn outputs(&self) -> &[InterfaceType];
     fn call(&self, arguments: &[InterfaceValue]) -> Result<Vec<InterfaceValue>, ()>;
 }
@@ -50,7 +52,7 @@ pub trait Export {
 pub trait LocalImport {
     fn inputs_cardinality(&self) -> usize;
     fn outputs_cardinality(&self) -> usize;
-    fn inputs(&self) -> &[InterfaceType];
+    fn arguments(&self) -> &[FunctionArg];
     fn outputs(&self) -> &[InterfaceType];
     fn call(&self, arguments: &[InterfaceValue]) -> Result<Vec<InterfaceValue>, ()>;
 }
@@ -72,9 +74,9 @@ where
     MV: MemoryView,
 {
     fn export(&self, export_name: &str) -> Option<&E>;
-    fn local_or_import<I: TypedIndex + LocalImportIndex>(&mut self, index: I) -> Option<&LI>;
+    fn local_or_import<I: TypedIndex + LocalImportIndex>(&self, index: I) -> Option<&LI>;
     fn memory(&self, index: usize) -> Option<&M>;
-    fn wit_type(&self, index: u32) -> Option<&ast::Type>;
+    fn wit_record_by_id(&self, index: u64) -> Option<&RecordType>;
 }
 
 impl Export for () {
@@ -86,7 +88,7 @@ impl Export for () {
         0
     }
 
-    fn inputs(&self) -> &[InterfaceType] {
+    fn arguments(&self) -> &[FunctionArg] {
         &[]
     }
 
@@ -108,7 +110,7 @@ impl LocalImport for () {
         0
     }
 
-    fn inputs(&self) -> &[InterfaceType] {
+    fn arguments(&self) -> &[FunctionArg] {
         &[]
     }
 
@@ -154,11 +156,11 @@ where
         None
     }
 
-    fn local_or_import<I: TypedIndex + LocalImportIndex>(&mut self, _index: I) -> Option<&LI> {
+    fn local_or_import<I: TypedIndex + LocalImportIndex>(&self, _index: I) -> Option<&LI> {
         None
     }
 
-    fn wit_type(&self, _index: u32) -> Option<&ast::Type> {
+    fn wit_record_by_id(&self, _index: u64) -> Option<&RecordType> {
         None
     }
 }

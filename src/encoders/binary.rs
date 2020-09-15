@@ -127,11 +127,22 @@ where
             InterfaceType::Anyref => 0x0b_u8.to_bytes(writer),
             InterfaceType::I32 => 0x0c_u8.to_bytes(writer),
             InterfaceType::I64 => 0x0d_u8.to_bytes(writer),
-            InterfaceType::Record(record_type) => {
+            InterfaceType::Record(record_id) => {
                 0x0e_u8.to_bytes(writer)?;
-                record_type.to_bytes(writer)
+                record_id.to_bytes(writer)
             }
         }
+    }
+}
+
+/// Encode a `RecordType` into bytes.
+impl<W> ToBytes<W> for RecordFieldType
+where
+    W: Write,
+{
+    fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
+        self.name.as_str().to_bytes(writer)?;
+        self.ty.to_bytes(writer)
     }
 }
 
@@ -141,6 +152,7 @@ where
     W: Write,
 {
     fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
+        self.name.as_str().to_bytes(writer)?;
         self.fields.to_bytes(writer)
     }
 }
@@ -174,6 +186,16 @@ where
     }
 }
 
+impl<W> ToBytes<W> for FunctionArg
+where
+    W: Write,
+{
+    fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
+        self.name.to_bytes(writer)?;
+        self.ty.to_bytes(writer)
+    }
+}
+
 /// Encode a `Type` into bytes.
 ///
 /// Decoder is in `decoders::binary::types`.
@@ -184,15 +206,11 @@ where
     fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
         match self {
             Type::Function {
-                name,
-                arg_types,
-                arg_names,
+                arguments,
                 output_types,
             } => {
                 TypeKind::Function.to_bytes(writer)?;
-                name.to_bytes(writer)?;
-                arg_types.to_bytes(writer)?;
-                arg_names.to_bytes(writer)?;
+                arguments.to_bytes(writer)?;
                 output_types.to_bytes(writer)?;
             }
 
@@ -363,7 +381,7 @@ where
             Instruction::ByteArrayLiftMemory => 0x37_u8.to_bytes(writer)?,
             Instruction::ByteArrayLowerMemory => 0x38_u8.to_bytes(writer)?,
             Instruction::ByteArraySize => 0x39_u8.to_bytes(writer)?,
-
+            /*
             Instruction::RecordLift { type_index } => {
                 0x25_u8.to_bytes(writer)?;
                 (*type_index as u64).to_bytes(writer)?
@@ -372,11 +390,16 @@ where
                 0x26_u8.to_bytes(writer)?;
                 (*type_index as u64).to_bytes(writer)?
             }
-            Instruction::RecordLiftMemory { type_index } => {
+             */
+            Instruction::RecordLiftMemory {
+                record_type_id: type_index,
+            } => {
                 0x3A_u8.to_bytes(writer)?;
                 (*type_index as u64).to_bytes(writer)?
             }
-            Instruction::RecordLowerMemory { type_index } => {
+            Instruction::RecordLowerMemory {
+                record_type_id: type_index,
+            } => {
                 0x3B_u8.to_bytes(writer)?;
                 (*type_index as u64).to_bytes(writer)?
             }

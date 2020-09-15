@@ -62,6 +62,7 @@ executable_instruction!(
             let string = String::from_utf8(data)
                 .map_err(|error| InstructionError::new(instruction, InstructionErrorKind::String(error)))?;
 
+            log::trace!("string.lift_memory: pushing {:?} on the stack", string);
             runtime.stack.push(InterfaceValue::String(string));
 
             Ok(())
@@ -108,6 +109,7 @@ executable_instruction!(
                 memory_view[string_pointer as usize + nth].set(*byte);
             }
 
+            log::trace!("string.lower_memory: pushing {}, {} on the stack", string_pointer, string_length);
             runtime.stack.push(InterfaceValue::I32(string_pointer as i32));
             runtime.stack.push(InterfaceValue::I32(string_length));
 
@@ -122,6 +124,8 @@ executable_instruction!(
             match runtime.stack.pop1() {
                 Some(InterfaceValue::String(string)) => {
                     let length = string.len() as i32;
+
+                    log::trace!("string.size: pushing {} on the stack", length);
                     runtime.stack.push(InterfaceValue::I32(length));
 
                     Ok(())
@@ -131,7 +135,7 @@ executable_instruction!(
                     instruction,
                     InstructionErrorKind::InvalidValueOnTheStack {
                         expected_type: InterfaceType::String,
-                        received_type: (&value).into(),
+                        received_value: (&value).clone(),
                     },
                 )),
 

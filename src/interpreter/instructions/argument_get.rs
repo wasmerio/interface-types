@@ -15,6 +15,8 @@ executable_instruction!(
                 ));
             }
 
+            log::trace!("arg.get: pushing {:?} on the stack", invocation_inputs[index as usize]);
+
             runtime.stack.push(invocation_inputs[index as usize].clone());
 
             Ok(())

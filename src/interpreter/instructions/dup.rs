@@ -14,6 +14,7 @@ executable_instruction!(
             })?;
 
             let value = value.clone();
+            log::trace!("dup: duplication {:?} value on the stack", value);
             runtime.stack.push(value);
 
             Ok(())
