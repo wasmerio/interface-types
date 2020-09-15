@@ -76,8 +76,7 @@ where
     fn export(&self, export_name: &str) -> Option<&E>;
     fn local_or_import<I: TypedIndex + LocalImportIndex>(&self, index: I) -> Option<&LI>;
     fn memory(&self, index: usize) -> Option<&M>;
-    fn wit_record_by_id(&self, index: u32) -> Option<&RecordType>;
-    fn wit_record_by_name(&self, name: &str) -> Option<&RecordType>;
+    fn wit_record_by_id(&self, index: u64) -> Option<&RecordType>;
 }
 
 impl Export for () {
@@ -161,11 +160,7 @@ where
         None
     }
 
-    fn wit_record_by_id(&self, _index: u32) -> Option<&RecordType> {
-        None
-    }
-
-    fn wit_record_by_name(&self, _name: &str) -> Option<&RecordType> {
+    fn wit_record_by_id(&self, _index: u64) -> Option<&RecordType> {
         None
     }
 }

@@ -123,9 +123,9 @@ fn ty<'input, E: ParseError<&'input [u8]>>(
         0x0c => InterfaceType::I32,
         0x0d => InterfaceType::I64,
         0x0e => {
-            consume!((input, record_name) = owned_string(input)?);
+            consume!((input, record_id) = uleb(input)?);
 
-            InterfaceType::Record(record_name)
+            InterfaceType::Record(record_id)
         }
         _ => return Err(Err::Error(make_error(input, ErrorKind::ParseTo))),
     };
@@ -320,7 +320,7 @@ fn instruction<'input, E: ParseError<&'input [u8]>>(
             (
                 input,
                 Instruction::RecordLiftMemory {
-                    type_index: argument_0 as u32,
+                    record_type_id: argument_0 as u32,
                 },
             )
         }
@@ -330,7 +330,7 @@ fn instruction<'input, E: ParseError<&'input [u8]>>(
             (
                 input,
                 Instruction::RecordLowerMemory {
-                    type_index: argument_0 as u32,
+                    record_type_id: argument_0 as u32,
                 },
             )
         }

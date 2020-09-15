@@ -167,7 +167,7 @@ pub enum InstructionErrorKind {
     /// The searched by name type doesn't exist.
     RecordTypeByNameIsMissing {
         /// The record type name.
-        type_name: String,
+        record_type_id: u64,
     },
 
     /// Corrupted record's been popped from the stack.
@@ -272,7 +272,7 @@ impl Display for InstructionErrorKind {
                 received_kind, expected_kind
             ),
 
-            Self::RecordTypeByNameIsMissing  { type_name } => write!(
+            Self::RecordTypeByNameIsMissing  { record_type_id: type_name } => write!(
                 formatter,
                 "type with `{}` is missing in a Wasm binary",
                 type_name

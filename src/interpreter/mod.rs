@@ -253,11 +253,11 @@ where
                     instructions::record_lower(*type_index, *instruction)
                 }
                 */
-                Instruction::RecordLiftMemory { type_index } => {
-                    instructions::record_lift_memory(*type_index, *instruction)
+                Instruction::RecordLiftMemory { record_type_id } => {
+                    instructions::record_lift_memory(*record_type_id as _, *instruction)
                 }
-                Instruction::RecordLowerMemory { type_index } => {
-                    instructions::record_lower_memory(*type_index, *instruction)
+                Instruction::RecordLowerMemory { record_type_id } => {
+                    instructions::record_lower_memory(*record_type_id as _, *instruction)
                 }
                 Instruction::Dup => instructions::dup(*instruction),
                 Instruction::Swap2 => instructions::swap2(*instruction),

@@ -51,9 +51,8 @@ pub enum InterfaceType {
     /// A 64-bits integer (as defiend in WebAssembly core).
     I64,
 
-    /// A record contains type name.
-    // TODO: consider making it &str
-    Record(String),
+    /// A record contains record index from interfaces AST.
+    Record(u64),
 }
 
 /// Represents a record field type.
@@ -77,4 +76,17 @@ pub struct RecordType {
     /// A record must have at least one field, hence the
     /// [`Vec1`][crate::vec1::Vec1].
     pub fields: Vec1<RecordFieldType>,
+}
+
+impl Default for RecordType {
+    fn default() -> Self {
+        Self {
+            name: String::new(),
+            fields: Vec1::new(vec![RecordFieldType {
+                name: String::new(),
+                ty: InterfaceType::S8,
+            }])
+            .unwrap(),
+        }
+    }
 }

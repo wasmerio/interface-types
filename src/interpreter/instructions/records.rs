@@ -216,20 +216,17 @@ where
                     values.push_back(InterfaceValue::ByteArray(vec![]));
                 }
             }
-            InterfaceType::Record(record_type_name) => {
+            InterfaceType::Record(record_type_id) => {
                 let offset = value;
 
-                let record_type =
-                    instance
-                        .wit_record_by_name(&record_type_name)
-                        .ok_or_else(|| {
-                            InstructionError::new(
-                                instruction,
-                                InstructionErrorKind::RecordTypeByNameIsMissing {
-                                    type_name: record_type_name.to_owned(),
-                                },
-                            )
-                        })?;
+                let record_type = instance.wit_record_by_id(*record_type_id).ok_or_else(|| {
+                    InstructionError::new(
+                        instruction,
+                        InstructionErrorKind::RecordTypeByNameIsMissing {
+                            record_type_id: *record_type_id,
+                        },
+                    )
+                })?;
 
                 values.push_back(record_lift_memory_(
                     instance,
@@ -251,7 +248,7 @@ where
 }
 
 pub(crate) fn record_lift_memory<Instance, Export, LocalImport, Memory, MemoryView>(
-    type_index: u32,
+    record_type_id: u64,
     instruction: Instruction,
 ) -> crate::interpreter::ExecutableInstruction<Instance, Export, LocalImport, Memory, MemoryView>
 where
@@ -280,10 +277,10 @@ where
 
             // TODO: size = 0
             let instance = &runtime.wasm_instance;
-            let record_type = instance.wit_record_by_id(type_index).ok_or_else(|| {
+            let record_type = instance.wit_record_by_id(record_type_id).ok_or_else(|| {
                 InstructionError::new(
                     instruction,
-                    InstructionErrorKind::TypeIsMissing { type_index },
+                    InstructionErrorKind::RecordTypeByNameIsMissing { record_type_id },
                 )
             })?;
 
@@ -364,7 +361,7 @@ where
 }
 
 pub(crate) fn record_lower_memory<Instance, Export, LocalImport, Memory, MemoryView>(
-    type_index: u32,
+    record_type_id: u64,
     instruction: Instruction,
 ) -> crate::interpreter::ExecutableInstruction<Instance, Export, LocalImport, Memory, MemoryView>
 where
@@ -380,18 +377,12 @@ where
     Box::new({
         move |runtime| -> _ {
             let instance = &mut runtime.wasm_instance;
-            let record_type = instance.wit_record_by_id(type_index).ok_or_else(|| {
-                InstructionError::new(
-                    instruction,
-                    InstructionErrorKind::TypeIsMissing { type_index },
-                )
-            })?;
 
             match runtime.stack.pop1() {
                 Some(InterfaceValue::Record(record_fields)) => {
                     is_record_fields_compatible_to_type(
                         &**instance,
-                        record_type,
+                        record_type_id,
                         &record_fields,
                         instruction,
                     )?;
@@ -403,7 +394,7 @@ where
                 Some(value) => Err(InstructionError::new(
                     instruction,
                     InstructionErrorKind::InvalidValueOnTheStack {
-                        expected_type: InterfaceType::Record(record_type.name.clone()),
+                        expected_type: InterfaceType::Record(record_type_id),
                         received_value: value,
                     },
                 )),

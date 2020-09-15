@@ -368,13 +368,13 @@ impl<'a> Parse<'a> for Instruction {
             parser.parse::<keyword::record_lift_memory>()?;
 
             Ok(Instruction::RecordLiftMemory {
-                type_index: parser.parse()?,
+                record_type_id: parser.parse()?,
             })
         } else if lookahead.peek::<keyword::record_lower_memory>() {
             parser.parse::<keyword::record_lower_memory>()?;
 
             Ok(Instruction::RecordLowerMemory {
-                type_index: parser.parse()?,
+                record_type_id: parser.parse()?,
             })
         } else if lookahead.peek::<keyword::dup>() {
             parser.parse::<keyword::dup>()?;

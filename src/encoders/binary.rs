@@ -127,9 +127,9 @@ where
             InterfaceType::Anyref => 0x0b_u8.to_bytes(writer),
             InterfaceType::I32 => 0x0c_u8.to_bytes(writer),
             InterfaceType::I64 => 0x0d_u8.to_bytes(writer),
-            InterfaceType::Record(record_type) => {
+            InterfaceType::Record(record_id) => {
                 0x0e_u8.to_bytes(writer)?;
-                record_type.as_str().to_bytes(writer)
+                record_id.to_bytes(writer)
             }
         }
     }
@@ -391,11 +391,15 @@ where
                 (*type_index as u64).to_bytes(writer)?
             }
              */
-            Instruction::RecordLiftMemory { type_index } => {
+            Instruction::RecordLiftMemory {
+                record_type_id: type_index,
+            } => {
                 0x3A_u8.to_bytes(writer)?;
                 (*type_index as u64).to_bytes(writer)?
             }
-            Instruction::RecordLowerMemory { type_index } => {
+            Instruction::RecordLowerMemory {
+                record_type_id: type_index,
+            } => {
                 0x3B_u8.to_bytes(writer)?;
                 (*type_index as u64).to_bytes(writer)?
             }
