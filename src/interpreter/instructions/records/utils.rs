@@ -35,7 +35,7 @@ where
         })?
         .view();
 
-    log::info!("reading {} bytes from offset {}", size, offset);
+    log::trace!("reading {} bytes from offset {}", size, offset);
 
     let right = offset + size;
     if right < offset || right >= memory_view.len() {
@@ -79,7 +79,7 @@ where
         })?
         .view();
 
-    log::info!("writing {} bytes from offset {}", bytes.len(), offset);
+    log::trace!("writing {} bytes from offset {}", bytes.len(), offset);
 
     let right = offset + bytes.len();
     if right < offset || right >= memory_view.len() {
