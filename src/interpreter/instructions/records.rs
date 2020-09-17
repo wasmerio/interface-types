@@ -284,6 +284,12 @@ where
                 )
             })?;
 
+            log::trace!(
+                "record.lift_memory: record {:?} resolved for type id {}",
+                record_type,
+                record_type_id
+            );
+
             let record = record_lift_memory_(&**instance, record_type, offset, instruction)?;
 
             log::trace!("record.lift_memory: pushing {:?} on the stack", record);
@@ -327,7 +333,7 @@ where
                 let string_pointer = if !value.is_empty() {
                     write_to_instance_mem(instance, instruction, value.as_bytes())?
                 } else {
-                    0i32
+                    0
                 };
 
                 result.push(string_pointer as _);
@@ -338,7 +344,7 @@ where
                 let byte_array_pointer = if !value.is_empty() {
                     write_to_instance_mem(instance, instruction, &value)?
                 } else {
-                    0i32
+                    0
                 };
 
                 result.push(byte_array_pointer as _);
@@ -348,7 +354,6 @@ where
             InterfaceValue::Record(values) => {
                 let record_ptr = record_lower_memory_(instance, instruction, values)?;
 
-                log::trace!("record.lower_memory: pushing {:?} on the stack", record_ptr);
                 result.push(record_ptr as _);
             }
         }
@@ -357,7 +362,7 @@ where
     let result = safe_transmute::transmute_to_bytes::<u64>(&result);
     let result_pointer = write_to_instance_mem(instance, instruction, &result)?;
 
-    Ok(result_pointer)
+    Ok(result_pointer as _)
 }
 
 pub(crate) fn record_lower_memory<Instance, Export, LocalImport, Memory, MemoryView>(
@@ -386,7 +391,12 @@ where
                         &record_fields,
                         instruction,
                     )?;
+
+                    log::trace!("record.lower_memory: obtained {:?} values on the stack for record type = {}", record_fields, record_type_id);
+
                     let offset = record_lower_memory_(*instance, instruction, record_fields)?;
+
+                    log::trace!("record.lower_memory: pushing {:?} on the stack", offset);
                     runtime.stack.push(InterfaceValue::I32(offset));
 
                     Ok(())

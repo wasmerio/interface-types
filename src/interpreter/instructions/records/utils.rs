@@ -35,6 +35,19 @@ where
         })?
         .view();
 
+    log::info!("reading {} bytes from offset {}", size, offset);
+
+    let right = offset + size;
+    if right < offset || right >= memory_view.len() {
+        return Err(InstructionError::new(
+            instruction,
+            InstructionErrorKind::MemoryOutOfBoundsAccess {
+                index: right,
+                length: memory_view.len(),
+            },
+        ));
+    }
+
     Ok((&memory_view[offset..offset + size])
         .iter()
         .map(std::cell::Cell::get)
@@ -45,7 +58,7 @@ pub(super) fn write_to_instance_mem<'instance, Instance, Export, LocalImport, Me
     instance: &'instance Instance,
     instruction: Instruction,
     bytes: &[u8],
-) -> Result<i32, InstructionError>
+) -> Result<usize, InstructionError>
 where
     Export: wasm::structures::Export + 'instance,
     LocalImport: wasm::structures::LocalImport + 'instance,
@@ -53,7 +66,7 @@ where
     MemoryView: wasm::structures::MemoryView,
     Instance: wasm::structures::Instance<Export, LocalImport, Memory, MemoryView>,
 {
-    let mem_pointer = allocate(instance, instruction, bytes.len() as _)?;
+    let offset = allocate(instance, instruction, bytes.len() as _)?;
 
     let memory_index: u32 = 0;
     let memory_view = instance
@@ -66,18 +79,31 @@ where
         })?
         .view();
 
-    for (byte_id, byte) in bytes.iter().enumerate() {
-        memory_view[mem_pointer as usize + byte_id].set(*byte);
+    log::info!("writing {} bytes from offset {}", bytes.len(), offset);
+
+    let right = offset + bytes.len();
+    if right < offset || right >= memory_view.len() {
+        return Err(InstructionError::new(
+            instruction,
+            InstructionErrorKind::MemoryOutOfBoundsAccess {
+                index: right,
+                length: memory_view.len(),
+            },
+        ));
     }
 
-    Ok(mem_pointer)
+    for (byte_id, byte) in bytes.iter().enumerate() {
+        memory_view[offset + byte_id].set(*byte);
+    }
+
+    Ok(offset)
 }
 
 pub(super) fn allocate<'instance, Instance, Export, LocalImport, Memory, MemoryView>(
     instance: &'instance Instance,
     instruction: Instruction,
-    size: i32,
-) -> Result<i32, InstructionError>
+    size: usize,
+) -> Result<usize, InstructionError>
 where
     Export: wasm::structures::Export + 'instance,
     LocalImport: wasm::structures::LocalImport + 'instance,
@@ -89,7 +115,7 @@ where
         instance,
         ALLOCATE_FUNC_INDEX,
         instruction,
-        vec![InterfaceValue::I32(size)],
+        vec![InterfaceValue::I32(size as _)],
     )?;
     if values.len() != 1 {
         return Err(InstructionError::new(
@@ -101,7 +127,7 @@ where
             },
         ));
     }
-    to_native::<i32>(&values[0], instruction)
+    to_native::<i32>(&values[0], instruction).map(|v| v as usize)
 }
 
 pub(super) fn deallocate<'instance, Instance, Export, LocalImport, Memory, MemoryView>(

@@ -158,22 +158,34 @@ impl Parse<'_> for RecordType {
     fn parse(parser: Parser<'_>) -> Result<Self> {
         parser.parse::<keyword::record>()?;
 
-        parser.parse::<keyword::string>()?;
-        let record_name = parser.parse()?;
+        let record_name = parser
+            .step(|cursor| {
+                cursor
+                    .id()
+                    .ok_or_else(|| cursor.error("expecting argument identifier"))
+            })?
+            .to_string();
 
         let mut fields = vec![];
 
-        while !parser.is_empty() {
-            fields.push(parser.parens(|parser| {
-                parser.parse::<keyword::string>()?;
-                let name = parser.parse()?;
-
+        parser.parens(|parser| {
+            while !parser.is_empty() {
                 parser.parse::<keyword::field>()?;
+
+                let name = parser
+                    .step(|cursor| {
+                        cursor
+                            .id()
+                            .ok_or_else(|| cursor.error("expecting argument identifier"))
+                    })?
+                    .to_string();
+
                 let ty = parser.parse()?;
 
-                Ok(RecordFieldType { name, ty })
-            })?);
-        }
+                fields.push(RecordFieldType { name, ty });
+            }
+            Ok(())
+        })?;
 
         Ok(RecordType {
             name: record_name,

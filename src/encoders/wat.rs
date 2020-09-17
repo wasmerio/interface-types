@@ -77,7 +77,7 @@ impl ToString for &InterfaceType {
             InterfaceType::Anyref => "anyref".to_string(),
             InterfaceType::I32 => "i32".to_string(),
             InterfaceType::I64 => "i64".to_string(),
-            InterfaceType::Record(record_type) => record_type.to_string(),
+            InterfaceType::Record(record_type_id) => format!("record {}", record_type_id),
         }
     }
 }
@@ -85,7 +85,7 @@ impl ToString for &InterfaceType {
 impl ToString for &RecordType {
     fn to_string(&self) -> String {
         format!(
-            "record {} {{\n{fields}}}",
+            "record ${} {{\n{fields}}}",
             self.name,
             fields = self
                 .fields
@@ -93,7 +93,7 @@ impl ToString for &RecordType {
                 .fold(String::new(), |mut accumulator, field_type| {
                     accumulator.push(' ');
                     accumulator.push_str(&format!(
-                        "{}: {}\n",
+                        "field ${}: {}\n",
                         field_type.name,
                         (&field_type.ty).to_string()
                     ));
