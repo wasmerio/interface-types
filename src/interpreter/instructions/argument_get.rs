@@ -10,7 +10,7 @@ executable_instruction!(
 
             if (index as usize) >= invocation_inputs.len() {
                 return Err(InstructionError::new(
-                    instruction,
+                    instruction.clone(),
                     InstructionErrorKind::InvocationInputIsMissing { index },
                 ));
             }

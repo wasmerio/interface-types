@@ -8,7 +8,7 @@ executable_instruction!(
         move |runtime| -> _ {
             let value = runtime.stack.peek1().ok_or_else(|| {
                 InstructionError::new(
-                    instruction,
+                    instruction.clone(),
                     InstructionErrorKind::StackIsTooSmall { needed: 1 },
                 )
             })?;

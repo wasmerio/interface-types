@@ -43,7 +43,7 @@ macro_rules! consume {
 ///
 /// # Example
 ///
-/// The following example creates a `foo` executable instruction,
+/// The following example creates a `foo` executable instruction.clone(),
 /// which takes 2 arguments (`x` and `y`), and does something
 /// mysterious by using the `interpreter::Runtime` API.
 ///

@@ -8,7 +8,7 @@ executable_instruction!(
         move |runtime| -> _ {
             let mut values = runtime.stack.pop(2).ok_or_else(|| {
                 InstructionError::new(
-                    instruction,
+                    instruction.clone(),
                     InstructionErrorKind::StackIsTooSmall { needed: 1 },
                 )
             })?;

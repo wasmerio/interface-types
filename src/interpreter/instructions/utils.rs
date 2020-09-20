@@ -29,7 +29,7 @@ where
         .memory(memory_index as usize)
         .ok_or_else(|| {
             InstructionError::new(
-                instruction,
+                instruction.clone(),
                 InstructionErrorKind::MemoryIsMissing { memory_index },
             )
         })?
@@ -66,14 +66,14 @@ where
     MemoryView: wasm::structures::MemoryView,
     Instance: wasm::structures::Instance<Export, LocalImport, Memory, MemoryView>,
 {
-    let offset = allocate(instance, instruction, bytes.len() as _)?;
+    let offset = allocate(instance, instruction.clone(), bytes.len() as _)?;
 
     let memory_index: u32 = 0;
     let memory_view = instance
         .memory(memory_index as usize)
         .ok_or_else(|| {
             InstructionError::new(
-                instruction,
+                instruction.clone(),
                 InstructionErrorKind::MemoryIsMissing { memory_index },
             )
         })?
@@ -114,7 +114,7 @@ where
     let values = call_core(
         instance,
         ALLOCATE_FUNC_INDEX,
-        instruction,
+        instruction.clone(),
         vec![InterfaceValue::I32(size as _)],
     )?;
     if values.len() != 1 {
@@ -169,7 +169,7 @@ where
     let index = FunctionIndex::new(function_index as usize);
     let local_or_import = instance.local_or_import(index).ok_or_else(|| {
         InstructionError::new(
-            instruction,
+            instruction.clone(),
             InstructionErrorKind::LocalOrImportIsMissing { function_index },
         )
     })?;
@@ -178,12 +178,12 @@ where
         instance,
         local_or_import,
         &inputs,
-        instruction,
+        instruction.clone(),
     )?;
 
     let outputs = local_or_import.call(&inputs).map_err(|_| {
         InstructionError::new(
-            instruction,
+            instruction.clone(),
             InstructionErrorKind::LocalOrImportCall { function_index },
         )
     })?;

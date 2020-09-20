@@ -177,7 +177,7 @@ where
 }
 
 /// Transforms a `Vec<Instruction>` into an `Interpreter`.
-impl<Instance, Export, LocalImport, Memory, MemoryView> TryFrom<&Vec<Instruction>>
+impl<Instance, Export, LocalImport, Memory, MemoryView> TryFrom<Vec<Instruction>>
     for Interpreter<Instance, Export, LocalImport, Memory, MemoryView>
 where
     Export: wasm::structures::Export,
@@ -188,79 +188,79 @@ where
 {
     type Error = ();
 
-    fn try_from(instructions: &Vec<Instruction>) -> Result<Self, Self::Error> {
+    fn try_from(instructions: Vec<Instruction>) -> Result<Self, Self::Error> {
         let executable_instructions = instructions
-            .iter()
+            .into_iter()
             .map(|instruction| match instruction {
                 Instruction::ArgumentGet { index } => {
-                    instructions::argument_get(*index, *instruction)
+                    instructions::argument_get(index, instruction)
                 }
 
                 Instruction::CallCore { function_index } => {
-                    instructions::call_core(*function_index, *instruction)
+                    instructions::call_core(function_index, instruction)
                 }
 
-                Instruction::S8FromI32 => instructions::s8_from_i32(*instruction),
-                Instruction::S8FromI64 => instructions::s8_from_i64(*instruction),
-                Instruction::S16FromI32 => instructions::s16_from_i32(*instruction),
-                Instruction::S16FromI64 => instructions::s16_from_i64(*instruction),
-                Instruction::S32FromI32 => instructions::s32_from_i32(*instruction),
-                Instruction::S32FromI64 => instructions::s32_from_i64(*instruction),
-                Instruction::S64FromI32 => instructions::s64_from_i32(*instruction),
-                Instruction::S64FromI64 => instructions::s64_from_i64(*instruction),
-                Instruction::I32FromS8 => instructions::i32_from_s8(*instruction),
-                Instruction::I32FromS16 => instructions::i32_from_s16(*instruction),
-                Instruction::I32FromS32 => instructions::i32_from_s32(*instruction),
-                Instruction::I32FromS64 => instructions::i32_from_s64(*instruction),
-                Instruction::I64FromS8 => instructions::i64_from_s8(*instruction),
-                Instruction::I64FromS16 => instructions::i64_from_s16(*instruction),
-                Instruction::I64FromS32 => instructions::i64_from_s32(*instruction),
-                Instruction::I64FromS64 => instructions::i64_from_s64(*instruction),
-                Instruction::U8FromI32 => instructions::u8_from_i32(*instruction),
-                Instruction::U8FromI64 => instructions::u8_from_i64(*instruction),
-                Instruction::U16FromI32 => instructions::u16_from_i32(*instruction),
-                Instruction::U16FromI64 => instructions::u16_from_i64(*instruction),
-                Instruction::U32FromI32 => instructions::u32_from_i32(*instruction),
-                Instruction::U32FromI64 => instructions::u32_from_i64(*instruction),
-                Instruction::U64FromI32 => instructions::u64_from_i32(*instruction),
-                Instruction::U64FromI64 => instructions::u64_from_i64(*instruction),
-                Instruction::I32FromU8 => instructions::i32_from_u8(*instruction),
-                Instruction::I32FromU16 => instructions::i32_from_u16(*instruction),
-                Instruction::I32FromU32 => instructions::i32_from_u32(*instruction),
-                Instruction::I32FromU64 => instructions::i32_from_u64(*instruction),
-                Instruction::I64FromU8 => instructions::i64_from_u8(*instruction),
-                Instruction::I64FromU16 => instructions::i64_from_u16(*instruction),
-                Instruction::I64FromU32 => instructions::i64_from_u32(*instruction),
-                Instruction::I64FromU64 => instructions::i64_from_u64(*instruction),
+                Instruction::S8FromI32 => instructions::s8_from_i32(instruction),
+                Instruction::S8FromI64 => instructions::s8_from_i64(instruction),
+                Instruction::S16FromI32 => instructions::s16_from_i32(instruction),
+                Instruction::S16FromI64 => instructions::s16_from_i64(instruction),
+                Instruction::S32FromI32 => instructions::s32_from_i32(instruction),
+                Instruction::S32FromI64 => instructions::s32_from_i64(instruction),
+                Instruction::S64FromI32 => instructions::s64_from_i32(instruction),
+                Instruction::S64FromI64 => instructions::s64_from_i64(instruction),
+                Instruction::I32FromS8 => instructions::i32_from_s8(instruction),
+                Instruction::I32FromS16 => instructions::i32_from_s16(instruction),
+                Instruction::I32FromS32 => instructions::i32_from_s32(instruction),
+                Instruction::I32FromS64 => instructions::i32_from_s64(instruction),
+                Instruction::I64FromS8 => instructions::i64_from_s8(instruction),
+                Instruction::I64FromS16 => instructions::i64_from_s16(instruction),
+                Instruction::I64FromS32 => instructions::i64_from_s32(instruction),
+                Instruction::I64FromS64 => instructions::i64_from_s64(instruction),
+                Instruction::U8FromI32 => instructions::u8_from_i32(instruction),
+                Instruction::U8FromI64 => instructions::u8_from_i64(instruction),
+                Instruction::U16FromI32 => instructions::u16_from_i32(instruction),
+                Instruction::U16FromI64 => instructions::u16_from_i64(instruction),
+                Instruction::U32FromI32 => instructions::u32_from_i32(instruction),
+                Instruction::U32FromI64 => instructions::u32_from_i64(instruction),
+                Instruction::U64FromI32 => instructions::u64_from_i32(instruction),
+                Instruction::U64FromI64 => instructions::u64_from_i64(instruction),
+                Instruction::I32FromU8 => instructions::i32_from_u8(instruction),
+                Instruction::I32FromU16 => instructions::i32_from_u16(instruction),
+                Instruction::I32FromU32 => instructions::i32_from_u32(instruction),
+                Instruction::I32FromU64 => instructions::i32_from_u64(instruction),
+                Instruction::I64FromU8 => instructions::i64_from_u8(instruction),
+                Instruction::I64FromU16 => instructions::i64_from_u16(instruction),
+                Instruction::I64FromU32 => instructions::i64_from_u32(instruction),
+                Instruction::I64FromU64 => instructions::i64_from_u64(instruction),
 
-                Instruction::StringLiftMemory => instructions::string_lift_memory(*instruction),
-                Instruction::StringLowerMemory => instructions::string_lower_memory(*instruction),
-                Instruction::StringSize => instructions::string_size(*instruction),
-
-                Instruction::ByteArrayLiftMemory => {
-                    instructions::byte_array_lift_memory(*instruction)
+                Instruction::StringLiftMemory => instructions::string_lift_memory(instruction),
+                Instruction::StringLowerMemory => instructions::string_lower_memory(instruction),
+                Instruction::StringSize => instructions::string_size(instruction),
+                Instruction::ArrayLiftMemory { ref value_type } => {
+                    let value_type = value_type.clone();
+                    instructions::array_lift_memory(instruction, value_type)
                 }
-                Instruction::ByteArrayLowerMemory => {
-                    instructions::byte_array_lower_memory(*instruction)
+                Instruction::ArrayLowerMemory { ref value_type } => {
+                    let value_type = value_type.clone();
+                    instructions::array_lower_memory(instruction, value_type)
                 }
-                Instruction::ByteArraySize => instructions::byte_array_size(*instruction),
 
                 /*
                 Instruction::RecordLift { type_index } => {
-                    instructions::record_lift(*type_index, *instruction)
+                    instructions::record_lift(*type_index, instruction)
                 }
                 Instruction::RecordLower { type_index } => {
-                    instructions::record_lower(*type_index, *instruction)
+                    instructions::record_lower(*type_index, instruction)
                 }
                 */
                 Instruction::RecordLiftMemory { record_type_id } => {
-                    instructions::record_lift_memory(*record_type_id as _, *instruction)
+                    instructions::record_lift_memory(record_type_id as _, instruction)
                 }
                 Instruction::RecordLowerMemory { record_type_id } => {
-                    instructions::record_lower_memory(*record_type_id as _, *instruction)
+                    instructions::record_lower_memory(record_type_id as _, instruction)
                 }
-                Instruction::Dup => instructions::dup(*instruction),
-                Instruction::Swap2 => instructions::swap2(*instruction),
+                Instruction::Dup => instructions::dup(instruction),
+                Instruction::Swap2 => instructions::swap2(instruction),
             })
             .collect();
 

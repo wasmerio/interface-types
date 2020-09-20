@@ -43,7 +43,7 @@ pub enum InterfaceValue {
     String(String),
 
     /// A byte array.
-    ByteArray(Vec<u8>),
+    Array(Vec<InterfaceValue>),
 
     //Anyref(?),
     /// A 32-bits integer (as defined in WebAssembly core).
@@ -107,7 +107,6 @@ native!(u64, U64);
 native!(f32, F32);
 native!(f64, F64);
 native!(String, String);
-native!(Vec<u8>, ByteArray);
 
 /// Iterates over a vector of `InterfaceValues` but flatten all the
 /// values. So `I32(1), Record([I32(2), I32(3)]), I32(4)` will be

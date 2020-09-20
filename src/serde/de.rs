@@ -129,16 +129,19 @@ impl<'de> Deserializer<'de> {
         }
     }
 
-    fn next_byte_array(&mut self) -> Result<&'de [u8], DeserializeError> {
+    fn next_array(&mut self) -> Result<&'de [u8], DeserializeError> {
         match self.iterator.peek() {
-            Some(InterfaceValue::ByteArray(v)) => {
+            Some(InterfaceValue::Array(_)) => {
                 self.iterator.next();
 
-                Ok(v)
+                // Ok(v)
+
+                unimplemented!()
             }
 
             Some(wrong_value) => Err(DeserializeError::TypeMismatch {
-                expected_type: InterfaceType::ByteArray,
+                // TODO: change default
+                expected_type: InterfaceType::Array(Box::new(InterfaceType::S8)),
                 received_value: (*wrong_value).clone(),
             }),
 
@@ -217,7 +220,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             Some(InterfaceValue::F32(_)) => self.deserialize_f32(visitor),
             Some(InterfaceValue::F64(_)) => self.deserialize_f64(visitor),
             Some(InterfaceValue::String(_)) => self.deserialize_string(visitor),
-            Some(InterfaceValue::ByteArray(_)) => self.deserialize_bytes(visitor),
+            Some(InterfaceValue::Array(_)) => self.deserialize_bytes(visitor),
             Some(InterfaceValue::I32(_)) => self.deserialize_i32(visitor),
             Some(InterfaceValue::I64(_)) => self.deserialize_i64(visitor),
             Some(InterfaceValue::Record(..)) => unreachable!("Records should have been flattened."), // already flattened
@@ -331,7 +334,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: de::Visitor<'de>,
     {
-        visitor.visit_bytes(self.next_byte_array()?)
+        visitor.visit_bytes(self.next_array()?)
     }
 
     fn deserialize_byte_buf<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
