@@ -268,6 +268,7 @@ where
 {
     let mut result: Vec<u64> = Vec::with_capacity(array_values.len());
 
+    // here it's known that all interface values have the same type
     for value in array_values {
         match value {
             InterfaceValue::S8(value) => result.push(value as _),
