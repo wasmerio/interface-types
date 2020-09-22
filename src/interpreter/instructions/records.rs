@@ -1,7 +1,5 @@
-mod utils;
-
-use utils::read_from_instance_mem;
-use utils::write_to_instance_mem;
+use super::read_from_instance_mem;
+use super::write_to_instance_mem;
 
 use crate::interpreter::instructions::{is_record_fields_compatible_to_type, to_native};
 use crate::{
@@ -12,7 +10,6 @@ use crate::{
     vec1::Vec1,
 };
 
-use std::collections::VecDeque;
 use std::convert::TryInto;
 
 /*
@@ -78,14 +75,14 @@ where
             let instance = &runtime.wasm_instance;
             let record_type = match instance.wit_type(type_index).ok_or_else(|| {
                 InstructionError::new(
-                    instruction,
+                    instruction.clone(),
                     InstructionErrorKind::TypeIsMissing { type_index },
                 )
             })? {
                 Type::Record(record_type) => record_type,
                 Type::Function { .. } => {
                     return Err(InstructionError::new(
-                        instruction,
+                        instruction.clone(),
                         InstructionErrorKind::InvalidTypeKind {
                             expected_kind: TypeKind::Record,
                             received_kind: TypeKind::Function,
@@ -94,7 +91,7 @@ where
                 }
             };
             let record = record_lift_(&mut runtime.stack, &record_type)
-                .map_err(|k| InstructionError::new(instruction, k))?;
+                .map_err(|k| InstructionError::new(instruction.clone(), k))?;
             runtime.stack.push(record);
             Ok(())
         }
@@ -102,7 +99,7 @@ where
 }
  */
 
-fn record_lift_memory_<'instance, Instance, Export, LocalImport, Memory, MemoryView>(
+pub(super) fn record_lift_memory_<'instance, Instance, Export, LocalImport, Memory, MemoryView>(
     instance: &'instance Instance,
     record_type: &RecordType,
     offset: usize,
@@ -121,7 +118,7 @@ where
 
         for field_type in record_type.fields.iter() {
             let params_count = match field_type.ty {
-                InterfaceType::String | InterfaceType::ByteArray => 2,
+                InterfaceType::String | InterfaceType::Array(_) => 2,
                 _ => 1,
             };
 
@@ -132,9 +129,9 @@ where
     }
 
     let length = record_type.fields.len();
-    let mut values = VecDeque::with_capacity(length);
+    let mut values = Vec::with_capacity(length);
     let size = record_size(record_type);
-    let data = read_from_instance_mem(instance, instruction, offset, size)?;
+    let data = read_from_instance_mem(instance, instruction.clone(), offset, size)?;
     // TODO: add error handling
     let data =
         safe_transmute::transmute_many::<u64, safe_transmute::SingleManyGuard>(&data).unwrap();
@@ -144,39 +141,39 @@ where
         let value = data[field_id];
         match &field.ty {
             InterfaceType::S8 => {
-                values.push_back(InterfaceValue::S8(value as _));
+                values.push(InterfaceValue::S8(value as _));
             }
             InterfaceType::S16 => {
-                values.push_back(InterfaceValue::S16(value as _));
+                values.push(InterfaceValue::S16(value as _));
             }
             InterfaceType::S32 => {
-                values.push_back(InterfaceValue::S32(value as _));
+                values.push(InterfaceValue::S32(value as _));
             }
             InterfaceType::S64 => {
-                values.push_back(InterfaceValue::S64(value as _));
+                values.push(InterfaceValue::S64(value as _));
             }
             InterfaceType::I32 => {
-                values.push_back(InterfaceValue::I32(value as _));
+                values.push(InterfaceValue::I32(value as _));
             }
             InterfaceType::I64 => {
-                values.push_back(InterfaceValue::I64(value as _));
+                values.push(InterfaceValue::I64(value as _));
             }
             InterfaceType::U8 => {
-                values.push_back(InterfaceValue::U8(value as _));
+                values.push(InterfaceValue::U8(value as _));
             }
             InterfaceType::U16 => {
-                values.push_back(InterfaceValue::U16(value as _));
+                values.push(InterfaceValue::U16(value as _));
             }
             InterfaceType::U32 => {
-                values.push_back(InterfaceValue::U32(value as _));
+                values.push(InterfaceValue::U32(value as _));
             }
             InterfaceType::U64 => {
-                values.push_back(InterfaceValue::U64(value as _));
+                values.push(InterfaceValue::U64(value as _));
             }
             InterfaceType::F32 => {
-                values.push_back(InterfaceValue::F32(value as _));
+                values.push(InterfaceValue::F32(value as _));
             }
-            InterfaceType::F64 => values.push_back(InterfaceValue::F64(f64::from_bits(value))),
+            InterfaceType::F64 => values.push(InterfaceValue::F64(f64::from_bits(value))),
             InterfaceType::Anyref => {}
             InterfaceType::String => {
                 let string_offset = value;
@@ -186,34 +183,34 @@ where
                 if string_size != 0 {
                     let string_mem = read_from_instance_mem(
                         instance,
-                        instruction,
+                        instruction.clone(),
                         string_offset as _,
                         string_size as _,
                     )?;
 
                     // TODO: check
                     let string = String::from_utf8(string_mem).unwrap();
-                    values.push_back(InterfaceValue::String(string));
+                    values.push(InterfaceValue::String(string));
                 } else {
-                    values.push_back(InterfaceValue::String(String::new()));
+                    values.push(InterfaceValue::String(String::new()));
                 }
             }
-            InterfaceType::ByteArray => {
+            InterfaceType::Array(ty) => {
                 let array_offset = value;
                 field_id += 1;
                 let array_size = data[field_id];
 
                 if array_size != 0 {
-                    let byte_array = read_from_instance_mem(
+                    let array = super::array_lift_memory_(
                         instance,
-                        instruction,
+                        &**ty,
                         array_offset as _,
                         array_size as _,
+                        instruction.clone(),
                     )?;
-
-                    values.push_back(InterfaceValue::ByteArray(byte_array));
+                    values.push(InterfaceValue::Array(array));
                 } else {
-                    values.push_back(InterfaceValue::ByteArray(vec![]));
+                    values.push(InterfaceValue::Array(vec![]));
                 }
             }
             InterfaceType::Record(record_type_id) => {
@@ -221,25 +218,25 @@ where
 
                 let record_type = instance.wit_record_by_id(*record_type_id).ok_or_else(|| {
                     InstructionError::new(
-                        instruction,
+                        instruction.clone(),
                         InstructionErrorKind::RecordTypeByNameIsMissing {
                             record_type_id: *record_type_id,
                         },
                     )
                 })?;
 
-                values.push_back(record_lift_memory_(
+                values.push(record_lift_memory_(
                     instance,
                     record_type,
                     offset as _,
-                    instruction,
+                    instruction.clone(),
                 )?)
             }
         }
         field_id += 1;
     }
 
-    utils::deallocate(instance, instruction, offset as _, size as _)?;
+    super::deallocate(instance, instruction, offset as _, size as _)?;
 
     Ok(InterfaceValue::Record(
         Vec1::new(values.into_iter().collect())
@@ -265,21 +262,21 @@ where
         move |runtime| -> _ {
             let inputs = runtime.stack.pop(1).ok_or_else(|| {
                 InstructionError::new(
-                    instruction,
+                    instruction.clone(),
                     InstructionErrorKind::StackIsTooSmall { needed: 1 },
                 )
             })?;
 
-            let offset: usize = to_native::<i32>(&inputs[0], instruction)?
+            let offset: usize = to_native::<i32>(&inputs[0], instruction.clone())?
                 .try_into()
                 .map_err(|e| (e, "offset").into())
-                .map_err(|k| InstructionError::new(instruction, k))?;
+                .map_err(|k| InstructionError::new(instruction.clone(), k))?;
 
             // TODO: size = 0
             let instance = &runtime.wasm_instance;
             let record_type = instance.wit_record_by_id(record_type_id).ok_or_else(|| {
                 InstructionError::new(
-                    instruction,
+                    instruction.clone(),
                     InstructionErrorKind::RecordTypeByNameIsMissing { record_type_id },
                 )
             })?;
@@ -290,7 +287,8 @@ where
                 record_type_id
             );
 
-            let record = record_lift_memory_(&**instance, record_type, offset, instruction)?;
+            let record =
+                record_lift_memory_(&**instance, record_type, offset, instruction.clone())?;
 
             log::trace!("record.lift_memory: pushing {:?} on the stack", record);
             runtime.stack.push(record);
@@ -300,7 +298,7 @@ where
     })
 }
 
-fn record_lower_memory_<Instance, Export, LocalImport, Memory, MemoryView>(
+pub(super) fn record_lower_memory_<Instance, Export, LocalImport, Memory, MemoryView>(
     instance: &mut Instance,
     instruction: Instruction,
     values: Vec1<InterfaceValue>,
@@ -331,7 +329,7 @@ where
             InterfaceValue::F64(value) => result.push(value.to_bits()),
             InterfaceValue::String(value) => {
                 let string_pointer = if !value.is_empty() {
-                    write_to_instance_mem(instance, instruction, value.as_bytes())?
+                    write_to_instance_mem(instance, instruction.clone(), value.as_bytes())?
                 } else {
                     0
                 };
@@ -340,19 +338,19 @@ where
                 result.push(value.len() as _);
             }
 
-            InterfaceValue::ByteArray(value) => {
-                let byte_array_pointer = if !value.is_empty() {
-                    write_to_instance_mem(instance, instruction, &value)?
+            InterfaceValue::Array(values) => {
+                let (offset, size) = if !values.is_empty() {
+                    super::array_lower_memory_(instance, instruction.clone(), values)?
                 } else {
-                    0
+                    (0, 0)
                 };
 
-                result.push(byte_array_pointer as _);
-                result.push(value.len() as _);
+                result.push(offset as _);
+                result.push(size as _);
             }
 
             InterfaceValue::Record(values) => {
-                let record_ptr = record_lower_memory_(instance, instruction, values)?;
+                let record_ptr = record_lower_memory_(instance, instruction.clone(), values)?;
 
                 result.push(record_ptr as _);
             }
@@ -389,27 +387,28 @@ where
                         &**instance,
                         record_type_id,
                         &record_fields,
-                        instruction,
+                        instruction.clone(),
                     )?;
 
                     log::trace!("record.lower_memory: obtained {:?} values on the stack for record type = {}", record_fields, record_type_id);
 
-                    let offset = record_lower_memory_(*instance, instruction, record_fields)?;
+                    let offset =
+                        record_lower_memory_(*instance, instruction.clone(), record_fields)?;
 
-                    log::trace!("record.lower_memory: pushing {:?} on the stack", offset);
+                    log::trace!("record.lower_memory: pushing {} on the stack", offset);
                     runtime.stack.push(InterfaceValue::I32(offset));
 
                     Ok(())
                 }
                 Some(value) => Err(InstructionError::new(
-                    instruction,
+                    instruction.clone(),
                     InstructionErrorKind::InvalidValueOnTheStack {
                         expected_type: InterfaceType::Record(record_type_id),
                         received_value: value,
                     },
                 )),
                 None => Err(InstructionError::new(
-                    instruction,
+                    instruction.clone(),
                     InstructionErrorKind::StackIsTooSmall { needed: 1 },
                 )),
             }
@@ -437,14 +436,14 @@ where
             let instance = &runtime.wasm_instance;
             let record_type = match instance.wit_type(type_index).ok_or_else(|| {
                 InstructionError::new(
-                    instruction,
+                    instruction.clone(),
                     InstructionErrorKind::TypeIsMissing { type_index },
                 )
             })? {
                 Type::Record(record_type) => record_type,
                 Type::Function { .. } => {
                     return Err(InstructionError::new(
-                        instruction,
+                        instruction.clone(),
                         InstructionErrorKind::InvalidTypeKind {
                             expected_kind: TypeKind::Record,
                             received_kind: TypeKind::Function,
@@ -463,14 +462,14 @@ where
                     Ok(())
                 }
                 Some(value) => Err(InstructionError::new(
-                    instruction,
+                    instruction.clone(),
                     InstructionErrorKind::InvalidValueOnTheStack {
                         expected_type: InterfaceType::Record(record_type.clone()),
                         received_type: (&value).into(),
                     },
                 )),
                 None => Err(InstructionError::new(
-                    instruction,
+                    instruction.clone(),
                     InstructionErrorKind::StackIsTooSmall { needed: 1 },
                 )),
             }

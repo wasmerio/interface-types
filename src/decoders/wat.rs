@@ -31,7 +31,7 @@ mod keyword {
     custom_keyword!(u32);
     custom_keyword!(u64);
     custom_keyword!(string);
-    custom_keyword!(byte_array);
+    custom_keyword!(Array);
 
     // Instructions.
     custom_keyword!(argument_get = "arg.get");
@@ -71,9 +71,9 @@ mod keyword {
     custom_keyword!(string_lift_memory = "string.lift_memory");
     custom_keyword!(string_lower_memory = "string.lower_memory");
     custom_keyword!(string_size = "string.size");
-    custom_keyword!(byte_array_lift_memory = "byte_array.lift_memory");
-    custom_keyword!(byte_array_lower_memory = "byte_array.lower_memory");
-    custom_keyword!(byte_array_size = "byte_array.size");
+    custom_keyword!(array_lift_memory = "array.lift_memory");
+    custom_keyword!(array_lower_memory = "array.lower_memory");
+    custom_keyword!(array_size = "array.size");
     custom_keyword!(record_lift = "record.lift");
     custom_keyword!(record_lower = "record.lower");
     custom_keyword!(record_lift_memory = "record.lift_memory");
@@ -130,10 +130,10 @@ impl Parse<'_> for InterfaceType {
             parser.parse::<keyword::string>()?;
 
             Ok(InterfaceType::String)
-        } else if lookahead.peek::<keyword::byte_array>() {
-            parser.parse::<keyword::byte_array>()?;
+        } else if lookahead.peek::<keyword::Array>() {
+            parser.parse::<keyword::Array>()?;
 
-            Ok(InterfaceType::ByteArray)
+            Ok(InterfaceType::Array(Box::new(parser.parse()?)))
         } else if lookahead.peek::<keyword::anyref>() {
             parser.parse::<keyword::anyref>()?;
 
@@ -352,18 +352,18 @@ impl<'a> Parse<'a> for Instruction {
             parser.parse::<keyword::string_size>()?;
 
             Ok(Instruction::StringSize)
-        } else if lookahead.peek::<keyword::byte_array_lift_memory>() {
-            parser.parse::<keyword::byte_array_lift_memory>()?;
+        } else if lookahead.peek::<keyword::array_lift_memory>() {
+            parser.parse::<keyword::array_lift_memory>()?;
 
-            Ok(Instruction::ByteArrayLiftMemory)
-        } else if lookahead.peek::<keyword::byte_array_lower_memory>() {
-            parser.parse::<keyword::byte_array_lower_memory>()?;
+            Ok(Instruction::ArrayLiftMemory {
+                value_type: parser.parse()?,
+            })
+        } else if lookahead.peek::<keyword::array_lower_memory>() {
+            parser.parse::<keyword::array_lower_memory>()?;
 
-            Ok(Instruction::ByteArrayLowerMemory)
-        } else if lookahead.peek::<keyword::byte_array_size>() {
-            parser.parse::<keyword::byte_array_size>()?;
-
-            Ok(Instruction::ByteArraySize)
+            Ok(Instruction::ArrayLowerMemory {
+                value_type: parser.parse()?,
+            })
         }
         /*
         else if lookahead.peek::<keyword::record_lift>() {

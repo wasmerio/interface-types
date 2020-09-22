@@ -123,7 +123,10 @@ where
             InterfaceType::F32 => 0x08_u8.to_bytes(writer),
             InterfaceType::F64 => 0x09_u8.to_bytes(writer),
             InterfaceType::String => 0x0a_u8.to_bytes(writer),
-            InterfaceType::ByteArray => 0x36_u8.to_bytes(writer),
+            InterfaceType::Array(ty) => {
+                0x36_u8.to_bytes(writer)?;
+                ty.to_bytes(writer)
+            }
             InterfaceType::Anyref => 0x0b_u8.to_bytes(writer),
             InterfaceType::I32 => 0x0c_u8.to_bytes(writer),
             InterfaceType::I64 => 0x0d_u8.to_bytes(writer),
@@ -378,10 +381,16 @@ where
             Instruction::StringLowerMemory => 0x23_u8.to_bytes(writer)?,
             Instruction::StringSize => 0x24_u8.to_bytes(writer)?,
 
-            Instruction::ByteArrayLiftMemory => 0x37_u8.to_bytes(writer)?,
-            Instruction::ByteArrayLowerMemory => 0x38_u8.to_bytes(writer)?,
-            Instruction::ByteArraySize => 0x39_u8.to_bytes(writer)?,
+            Instruction::ArrayLiftMemory { value_type } => {
+                0x37_u8.to_bytes(writer)?;
+                value_type.to_bytes(writer)?
+            }
+            Instruction::ArrayLowerMemory { value_type } => {
+                0x38_u8.to_bytes(writer)?;
+                value_type.to_bytes(writer)?
+            }
             /*
+            Instruction::ArraySize => 0x39_u8.to_bytes(writer)?,
             Instruction::RecordLift { type_index } => {
                 0x25_u8.to_bytes(writer)?;
                 (*type_index as u64).to_bytes(writer)?

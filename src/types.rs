@@ -39,8 +39,8 @@ pub enum InterfaceType {
     /// A string.
     String,
 
-    /// A byte array.
-    ByteArray,
+    /// An array of values of the same type.
+    Array(Box<InterfaceType>),
 
     /// An `any` reference.
     Anyref,
@@ -48,7 +48,7 @@ pub enum InterfaceType {
     /// A 32-bits integer (as defined in WebAssembly core).
     I32,
 
-    /// A 64-bits integer (as defiend in WebAssembly core).
+    /// A 64-bits integer (as defined in WebAssembly core).
     I64,
 
     /// A record contains record index from interfaces AST.

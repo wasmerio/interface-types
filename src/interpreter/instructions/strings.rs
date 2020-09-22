@@ -12,7 +12,7 @@ executable_instruction!(
         move |runtime| -> _ {
             let inputs = runtime.stack.pop(2).ok_or_else(|| {
                 InstructionError::new(
-                    instruction,
+                    instruction.clone(),
                     InstructionErrorKind::StackIsTooSmall { needed: 2 },
                 )
             })?;
@@ -23,19 +23,19 @@ executable_instruction!(
                 .memory(memory_index as usize)
                 .ok_or_else(|| {
                     InstructionError::new(
-                        instruction,
+                        instruction.clone(),
                         InstructionErrorKind::MemoryIsMissing { memory_index },
                     )
                 })?;
 
-            let pointer: usize = to_native::<i32>(&inputs[0], instruction)?
+            let pointer: usize = to_native::<i32>(&inputs[0], instruction.clone())?
                 .try_into()
                 .map_err(|e| (e, "pointer").into())
-                .map_err(|k| InstructionError::new(instruction, k))?;
-            let length: usize = to_native::<i32>(&inputs[1], instruction)?
+                .map_err(|k| InstructionError::new(instruction.clone(), k))?;
+            let length: usize = to_native::<i32>(&inputs[1], instruction.clone())?
                 .try_into()
                 .map_err(|e| (e, "length").into())
-                .map_err(|k| InstructionError::new(instruction, k))?;
+                .map_err(|k| InstructionError::new(instruction.clone(), k))?;
             let memory_view = memory.view();
 
             if length == 0 {
@@ -46,7 +46,7 @@ executable_instruction!(
 
             if memory_view.len() < pointer + length {
                 return Err(InstructionError::new(
-                    instruction,
+                    instruction.clone(),
                     InstructionErrorKind::MemoryOutOfBoundsAccess {
                         index: pointer + length,
                         length: memory_view.len(),
@@ -60,7 +60,7 @@ executable_instruction!(
                 .collect();
 
             let string = String::from_utf8(data)
-                .map_err(|error| InstructionError::new(instruction, InstructionErrorKind::String(error)))?;
+                .map_err(|error| InstructionError::new(instruction.clone(), InstructionErrorKind::String(error)))?;
 
             log::trace!("string.lift_memory: pushing {:?} on the stack", string);
             runtime.stack.push(InterfaceValue::String(string));
@@ -75,20 +75,20 @@ executable_instruction!(
         move |runtime| -> _ {
             let inputs = runtime.stack.pop(2).ok_or_else(|| {
                 InstructionError::new(
-                    instruction,
+                    instruction.clone(),
                     InstructionErrorKind::StackIsTooSmall { needed: 2 },
                 )
             })?;
 
-            let string_pointer: usize = to_native::<i32>(&inputs[0], instruction)?
+            let string_pointer: usize = to_native::<i32>(&inputs[0], instruction.clone())?
                 .try_into()
                 .map_err(|e| (e, "pointer").into())
-                .map_err(|k| InstructionError::new(instruction, k))?;
-            let string: String = to_native(&inputs[1], instruction)?;
+                .map_err(|k| InstructionError::new(instruction.clone(), k))?;
+            let string: String = to_native(&inputs[1], instruction.clone())?;
             let string_bytes = string.as_bytes();
             let string_length: i32 = string_bytes.len().try_into().map_err(|_| {
                 InstructionError::new(
-                    instruction,
+                    instruction.clone(),
                     InstructionErrorKind::NegativeValue { subject: "string_length" },
                 )
             })?;
@@ -99,7 +99,7 @@ executable_instruction!(
                 .memory(memory_index as usize)
                 .ok_or_else(|| {
                     InstructionError::new(
-                        instruction,
+                        instruction.clone(),
                         InstructionErrorKind::MemoryIsMissing { memory_index },
                     )
                 })?
@@ -132,7 +132,7 @@ executable_instruction!(
                 },
 
                 Some(value) => Err(InstructionError::new(
-                    instruction,
+                    instruction.clone(),
                     InstructionErrorKind::InvalidValueOnTheStack {
                         expected_type: InterfaceType::String,
                         received_value: (&value).clone(),
@@ -140,7 +140,7 @@ executable_instruction!(
                 )),
 
                 None => Err(InstructionError::new(
-                    instruction,
+                    instruction.clone(),
                     InstructionErrorKind::StackIsTooSmall { needed: 1 },
                 )),
             }

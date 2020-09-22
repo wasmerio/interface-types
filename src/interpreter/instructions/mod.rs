@@ -1,11 +1,12 @@
 mod argument_get;
-mod byte_arrays;
+mod arrays;
 mod call_core;
 mod dup;
 mod numbers;
 mod records;
 mod strings;
 mod swap2;
+mod utils;
 
 use crate::interpreter::wasm;
 use crate::types::InterfaceType;
@@ -15,7 +16,7 @@ use crate::{
     values::{InterfaceValue, NativeType},
 };
 pub(crate) use argument_get::argument_get;
-pub(crate) use byte_arrays::*;
+pub(crate) use arrays::*;
 pub(crate) use call_core::call_core;
 pub(crate) use dup::dup;
 pub(crate) use numbers::*;
@@ -23,12 +24,13 @@ pub(crate) use records::*;
 use std::convert::TryFrom;
 pub(crate) use strings::*;
 pub(crate) use swap2::swap2;
+pub(self) use utils::*;
 
 pub(self) const ALLOCATE_FUNC_INDEX: u32 = 0;
 pub(self) const DEALLOCATE_FUNC_INDEX: u32 = 1;
 
 /// Represents all the possible WIT instructions.
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Instruction {
     /// The `arg.get` instruction.
     ArgumentGet {
@@ -147,14 +149,17 @@ pub enum Instruction {
     /// The `string.size` instruction.
     StringSize,
 
-    /// The `byte_array.lift_memory` instruction.
-    ByteArrayLiftMemory,
+    /// The `array.lift_memory` instruction.
+    ArrayLiftMemory {
+        /// Array value type.
+        value_type: InterfaceType,
+    },
 
-    /// The `byte_array.lower_memory` instruction.
-    ByteArrayLowerMemory,
-
-    /// The `string.size` instruction.
-    ByteArraySize,
+    /// The `array.lower_memory` instruction.
+    ArrayLowerMemory {
+        /// Array value type.
+        value_type: InterfaceType,
+    },
 
     /*
     /// The `record.lift` instruction.
@@ -225,7 +230,7 @@ where
     let func_inputs = local_import.arguments();
 
     for (func_input_arg, value) in func_inputs.iter().zip(values.iter()) {
-        is_value_compatible_to_type(instance, &func_input_arg.ty, value, instruction)?;
+        is_value_compatible_to_type(instance, &func_input_arg.ty, value, instruction.clone())?;
     }
 
     Ok(())
@@ -266,7 +271,13 @@ where
         (InterfaceType::F32, InterfaceValue::F32(_)) => Ok(()),
         (InterfaceType::F64, InterfaceValue::F64(_)) => Ok(()),
         (InterfaceType::String, InterfaceValue::String(_)) => Ok(()),
-        (InterfaceType::ByteArray, InterfaceValue::ByteArray(_)) => Ok(()),
+        (InterfaceType::Array(ty), InterfaceValue::Array(values)) => {
+            for value in values {
+                is_value_compatible_to_type(instance, ty, value, instruction.clone())?
+            }
+
+            Ok(())
+        }
         (InterfaceType::Record(ref record_type_id), InterfaceValue::Record(record_fields)) => {
             is_record_fields_compatible_to_type(
                 instance,
@@ -309,14 +320,14 @@ where
 {
     let record_type = instance.wit_record_by_id(record_type_id).ok_or_else(|| {
         InstructionError::new(
-            instruction,
+            instruction.clone(),
             InstructionErrorKind::RecordTypeByNameIsMissing { record_type_id },
         )
     })?;
 
     if record_fields.len() != record_type.fields.len() {
         return Err(InstructionError::new(
-            instruction,
+            instruction.clone(),
             InstructionErrorKind::InvalidValueOnTheStack {
                 expected_type: InterfaceType::Record(record_type_id),
                 // unwrap is safe here - len's been already checked
@@ -332,7 +343,7 @@ where
             instance,
             &record_type_field.ty,
             record_value_field,
-            instruction,
+            instruction.clone(),
         )?;
     }
 

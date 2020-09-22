@@ -195,7 +195,11 @@ checksum = "078775d0255232fb988e6fccf26ddc9d1ac274299aaedcedce21c6f72cc533ce"
 
 [[package]]
 name = "wasmer-interface-types-fl"
+<<<<<<< HEAD
 version = "0.17.9"
+=======
+version = "0.17.6"
+>>>>>>> 1ccedeba6599e24bfb7e9d232d0ad155fba109c6
 dependencies = [
  "log",
  "nom",

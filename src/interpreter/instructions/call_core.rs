@@ -12,7 +12,7 @@ executable_instruction!(
 
             let local_or_import = instance.local_or_import(index).ok_or_else(|| {
                 InstructionError::new(
-                    instruction,
+                    instruction.clone(),
                     InstructionErrorKind::LocalOrImportIsMissing {
                         function_index,
                     },
@@ -22,20 +22,20 @@ executable_instruction!(
 
             let inputs = runtime.stack.pop(inputs_cardinality).ok_or_else(|| {
                 InstructionError::new(
-                    instruction,
+                    instruction.clone(),
                     InstructionErrorKind::StackIsTooSmall {
                         needed: inputs_cardinality,
                     },
                 )
             })?;
 
-            super::check_function_signature(&**instance, local_or_import, &inputs, instruction)?;
+            super::check_function_signature(&**instance, local_or_import, &inputs, instruction.clone())?;
 
             log::trace!("call-core: calling {} with arguments: {:?}", function_index, inputs);
 
             let outputs = local_or_import.call(&inputs).map_err(|_| {
                 InstructionError::new(
-                    instruction,
+                    instruction.clone(),
                     InstructionErrorKind::LocalOrImportCall {
                         function_index,
                     },
