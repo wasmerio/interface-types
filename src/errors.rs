@@ -170,6 +170,9 @@ pub enum InstructionErrorKind {
         record_type_id: u64,
     },
 
+    /// Corrupted array's been popped from the stack.
+    CorruptedArray(String),
+
     /// Corrupted record's been popped from the stack.
     CorruptedRecord(String),
 
@@ -276,6 +279,12 @@ impl Display for InstructionErrorKind {
                 formatter,
                 "type with `{}` is missing in a Wasm binary",
                 type_name
+            ),
+
+            Self::CorruptedArray(err) => write!(
+                formatter,
+                "{}",
+                err
             ),
 
             Self::CorruptedRecord(err) => write!(
