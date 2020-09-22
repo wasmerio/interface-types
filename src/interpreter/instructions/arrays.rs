@@ -27,6 +27,10 @@ where
     Instance: crate::interpreter::wasm::structures::Instance<Export, LocalImport, Memory, MemoryView>
         + 'instance,
 {
+    use safe_transmute::guard::AllOrNothingGuard;
+    use safe_transmute::transmute_many;
+    use safe_transmute::transmute_vec;
+
     if size == 0 {
         return Ok(vec![]);
     }
@@ -35,80 +39,81 @@ where
 
     let result_array = match value_type {
         InterfaceType::S8 => {
-            let data = safe_transmute::transmute_vec::<u8, i8>(data).unwrap();
+            let data = transmute_vec::<u8, i8>(data).unwrap();
             data.into_iter().map(InterfaceValue::S8).collect::<Vec<_>>()
         }
         InterfaceType::S16 => {
-            let data = safe_transmute::transmute_vec::<u8, i16>(data).unwrap();
-            data.into_iter()
-                .map(InterfaceValue::S16)
+            let data = transmute_many::<i16, AllOrNothingGuard>(&data).unwrap();
+
+            data.iter()
+                .map(|v| InterfaceValue::S16(*v))
                 .collect::<Vec<_>>()
         }
         InterfaceType::S32 => {
-            let data = safe_transmute::transmute_vec::<u8, i32>(data).unwrap();
-            data.into_iter()
-                .map(InterfaceValue::S32)
+            let data = transmute_many::<i32, AllOrNothingGuard>(&data).unwrap();
+            data.iter()
+                .map(|v| InterfaceValue::S32(*v))
                 .collect::<Vec<_>>()
         }
         InterfaceType::S64 => {
-            let data = safe_transmute::transmute_vec::<u8, i64>(data).unwrap();
-            data.into_iter()
-                .map(InterfaceValue::S64)
+            let data = transmute_many::<i64, AllOrNothingGuard>(&data).unwrap();
+            data.iter()
+                .map(|v| InterfaceValue::S64(*v))
                 .collect::<Vec<_>>()
         }
         InterfaceType::I32 => {
-            let data = safe_transmute::transmute_vec::<u8, i32>(data).unwrap();
-            data.into_iter()
-                .map(InterfaceValue::I32)
+            let data = transmute_many::<i32, AllOrNothingGuard>(&data).unwrap();
+            data.iter()
+                .map(|v| InterfaceValue::I32(*v))
                 .collect::<Vec<_>>()
         }
         InterfaceType::I64 => {
-            let data = safe_transmute::transmute_vec::<u8, i64>(data).unwrap();
-            data.into_iter()
-                .map(InterfaceValue::I64)
+            let data = transmute_many::<i64, AllOrNothingGuard>(&data).unwrap();
+            data.iter()
+                .map(|v| InterfaceValue::S64(*v))
                 .collect::<Vec<_>>()
         }
         InterfaceType::U8 => data.into_iter().map(InterfaceValue::U8).collect::<Vec<_>>(),
         InterfaceType::U16 => {
-            let data = safe_transmute::transmute_vec::<u8, u16>(data).unwrap();
-            data.into_iter()
-                .map(InterfaceValue::U16)
+            let data = transmute_many::<u16, AllOrNothingGuard>(&data).unwrap();
+            data.iter()
+                .map(|v| InterfaceValue::U16(*v))
                 .collect::<Vec<_>>()
         }
         InterfaceType::U32 => {
-            let data = safe_transmute::transmute_vec::<u8, u32>(data).unwrap();
-            data.into_iter()
-                .map(InterfaceValue::U32)
+            let data = transmute_many::<u32, AllOrNothingGuard>(&data).unwrap();
+            data.iter()
+                .map(|v| InterfaceValue::U32(*v))
                 .collect::<Vec<_>>()
         }
         InterfaceType::U64 => {
-            let data = safe_transmute::transmute_vec::<u8, u64>(data).unwrap();
-            data.into_iter()
-                .map(InterfaceValue::U64)
+            let data = transmute_many::<u64, AllOrNothingGuard>(&data).unwrap();
+            data.iter()
+                .map(|v| InterfaceValue::U64(*v))
                 .collect::<Vec<_>>()
         }
         InterfaceType::F32 => {
-            let data = safe_transmute::transmute_vec::<u8, u32>(data).unwrap();
-            data.into_iter()
-                .map(|v| InterfaceValue::F32(v as _))
+            let data = transmute_many::<u32, AllOrNothingGuard>(&data).unwrap();
+            data.iter()
+                .map(|v| InterfaceValue::F32(f32::from_bits(*v)))
                 .collect::<Vec<_>>()
         }
         InterfaceType::F64 => {
-            let data = safe_transmute::transmute_vec::<u8, u64>(data).unwrap();
-            data.into_iter()
-                .map(|v| InterfaceValue::F64(f64::from_bits(v)))
+            let data = transmute_many::<u64, AllOrNothingGuard>(&data).unwrap();
+            data.iter()
+                .map(|v| InterfaceValue::F64(f64::from_bits(*v)))
                 .collect::<Vec<_>>()
         }
         InterfaceType::Anyref => unimplemented!(),
         InterfaceType::String => {
-            let data = safe_transmute::transmute_vec::<u8, u32>(data).unwrap();
+            let data = transmute_many::<u32, AllOrNothingGuard>(&data).unwrap();
 
             if data.is_empty() {
                 return Ok(vec![]);
             }
 
             let mut result = Vec::with_capacity(data.len() / 2);
-            let mut data = data.into_iter();
+            let mut data = data.iter();
 
             while let Some(string_offset) = data.next() {
                 let string_size = data.next().ok_or_else(|| {
@@ -123,8 +128,8 @@ where
                 let string_mem = read_from_instance_mem(
                     instance,
                     instruction.clone(),
-                    string_offset as _,
-                    string_size as _,
+                    *string_offset as _,
+                    *string_size as _,
                 )?;
 
                 // TODO: check
@@ -135,14 +140,18 @@ where
             result
         }
         InterfaceType::Array(ty) => {
-            let data = safe_transmute::transmute_vec::<u8, u32>(data).unwrap();
+            let data = transmute_many::<
+                u32,
+                AllOrNothingGuard,
+            >(&data)
+            .unwrap();
 
             if data.is_empty() {
                 return Ok(vec![]);
             }
 
             let mut result = Vec::with_capacity(data.len() / 2);
-            let mut data = data.into_iter();
+            let mut data = data.iter();
 
             while let Some(array_offset) = data.next() {
                 let array_size = data.next().ok_or_else(|| {
@@ -157,8 +166,8 @@ where
                 let value = array_lift_memory_(
                     instance,
                     &*ty,
-                    array_offset as _,
-                    array_size as _,
+                    *array_offset as _,
+                    *array_size as _,
                     instruction.clone(),
                 )?;
 
@@ -177,15 +186,19 @@ where
                 )
             })?;
 
-            let data = safe_transmute::transmute_vec::<u8, u32>(data).unwrap();
+            let data = transmute_many::<
+                u32,
+                AllOrNothingGuard,
+            >(&data)
+            .unwrap();
 
             let mut result = Vec::with_capacity(data.len());
 
-            for record_offset in data.into_iter() {
+            for record_offset in data {
                 result.push(super::record_lift_memory_(
                     instance,
                     record_type,
-                    record_offset as _,
+                    *record_offset as _,
                     instruction.clone(),
                 )?);
             }
@@ -228,12 +241,14 @@ where
 
             let size: usize = to_native::<i32>(&inputs[1], instruction.clone())?
                 .try_into()
-                .map_err(|e| (e, "offset").into())
+                .map_err(|e| (e, "size").into())
                 .map_err(|k| InstructionError::new(instruction.clone(), k))?;
 
             log::trace!(
-                "array.lift_memory: lifting memory for value type: {:?}",
-                value_type
+                "array.lift_memory: lifting memory for value type: {:?}, popped offset {}, size {}",
+                value_type,
+                offset,
+                size
             );
 
             let instance = &mut runtime.wasm_instance;
@@ -343,16 +358,18 @@ where
                 )
             })?;
 
-            super::is_value_compatible_to_type(
-                &**instance,
-                &value_type,
-                &stack_value,
-                instruction.clone(),
-            )?;
-
             match stack_value {
                 InterfaceValue::Array(values) => {
-                    log::trace!("array.lower_memory: obtained {:?} values on the stack for interface type = {:?}", values, value_type);
+                    log::trace!("array.lower_memory: obtained {:?} values on the stack for interface type {:?}", values, value_type);
+
+                    for value in values.iter() {
+                        super::is_value_compatible_to_type(
+                            &**instance,
+                            &value_type,
+                            &value,
+                            instruction.clone(),
+                        )?;
+                    }
 
                     let (offset, size) =
                         array_lower_memory_(*instance, instruction.clone(), values)?;
@@ -367,7 +384,13 @@ where
 
                     Ok(())
                 }
-                _ => panic!("is_value_compatible_to_type should invoked previously"),
+                _ => Err(InstructionError::new(
+                    instruction.clone(),
+                    InstructionErrorKind::InvalidValueOnTheStack {
+                        expected_type: InterfaceType::Array(Box::new(value_type.clone())),
+                        received_value: stack_value.clone(),
+                    },
+                )),
             }
         }
     })
