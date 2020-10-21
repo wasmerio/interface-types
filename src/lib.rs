@@ -39,8 +39,8 @@
 //! [instructions]: interpreter::Instruction
 
 #![deny(
-    // dead_code,
-    intra_doc_link_resolution_failure,
+    dead_code,
+    broken_intra_doc_links,
     missing_docs,
     nonstandard_style,
     unreachable_patterns,

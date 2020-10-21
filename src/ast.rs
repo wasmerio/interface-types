@@ -5,10 +5,13 @@ use crate::{
     interpreter::Instruction,
     types::{InterfaceType, RecordType},
 };
+
+use serde::Deserialize;
+use serde::Serialize;
 use std::str;
 
 /// Represents the kind of type.
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, Hash, Serialize, Deserialize)]
 pub enum TypeKind {
     /// A function type.
     Function,
@@ -18,7 +21,7 @@ pub enum TypeKind {
 }
 
 /// Represents the function argument type.
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, Hash, Serialize, Deserialize)]
 pub struct FunctionArg {
     /// A function argument name.
     pub name: String,
@@ -28,7 +31,7 @@ pub struct FunctionArg {
 }
 
 /// Represents a type.
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, Hash, Serialize, Deserialize)]
 pub enum Type {
     /// A function type, like:
     ///
@@ -52,7 +55,7 @@ pub enum Type {
 }
 
 /// Represents an imported function.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug, Default, Clone, Hash)]
 pub struct Import<'input> {
     /// The function namespace.
     pub namespace: &'input str,
@@ -65,7 +68,7 @@ pub struct Import<'input> {
 }
 
 /// Represents an exported function signature.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug, Default, Clone, Hash)]
 pub struct Export<'input> {
     /// The export name.
     pub name: &'input str,
@@ -75,7 +78,7 @@ pub struct Export<'input> {
 }
 
 /// Represents an adapter.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Hash, Serialize, Deserialize)]
 pub struct Adapter {
     /// The adapter function type.
     pub function_type: u32,
@@ -85,7 +88,7 @@ pub struct Adapter {
 }
 
 /// Represents an implementation.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug, Default, Clone, Hash, Serialize, Deserialize)]
 pub struct Implementation {
     /// The core function type.
     pub core_function_type: u32,
@@ -95,7 +98,7 @@ pub struct Implementation {
 }
 
 /// Represents the kind of interface.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Hash, Serialize, Deserialize)]
 pub(crate) enum InterfaceKind {
     /// A type.
     Type,
@@ -115,7 +118,7 @@ pub(crate) enum InterfaceKind {
 
 /// Represents a set of interfaces, i.e. it entirely describes a WIT
 /// definition.
-#[derive(PartialEq, Default, Debug)]
+#[derive(PartialEq, Eq, Debug, Default, Clone, Hash)]
 pub struct Interfaces<'input> {
     /// All the types.
     pub types: Vec<Type>,

@@ -140,11 +140,7 @@ where
             result
         }
         InterfaceType::Array(ty) => {
-            let data = transmute_many::<
-                u32,
-                AllOrNothingGuard,
-            >(&data)
-            .unwrap();
+            let data = transmute_many::<u32, AllOrNothingGuard>(&data).unwrap();
 
             if data.is_empty() {
                 return Ok(vec![]);
@@ -186,11 +182,7 @@ where
                 )
             })?;
 
-            let data = transmute_many::<
-                u32,
-                AllOrNothingGuard,
-            >(&data)
-            .unwrap();
+            let data = transmute_many::<u32, AllOrNothingGuard>(&data).unwrap();
 
             let mut result = Vec::with_capacity(data.len());
 
