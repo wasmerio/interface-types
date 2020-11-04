@@ -4,6 +4,7 @@ use crate::ast::FunctionArg;
 use crate::types::RecordType;
 use crate::{types::InterfaceType, values::InterfaceValue};
 use std::{cell::Cell, ops::Deref};
+use std::rc::Rc;
 
 pub trait TypedIndex: Copy + Clone {
     fn new(index: usize) -> Self;
@@ -76,7 +77,7 @@ where
     fn export(&self, export_name: &str) -> Option<&E>;
     fn local_or_import<I: TypedIndex + LocalImportIndex>(&self, index: I) -> Option<&LI>;
     fn memory(&self, index: usize) -> Option<&M>;
-    fn wit_record_by_id(&self, index: u64) -> Option<&RecordType>;
+    fn wit_record_by_id(&self, index: u64) -> Option<&Rc<RecordType>>;
 }
 
 impl Export for () {
@@ -160,7 +161,7 @@ where
         None
     }
 
-    fn wit_record_by_id(&self, _index: u64) -> Option<&RecordType> {
+    fn wit_record_by_id(&self, _index: u64) -> Option<&Rc<RecordType>> {
         None
     }
 }
