@@ -1,6 +1,7 @@
 //! Parse the WIT textual representation into an [AST](crate::ast).
 
 use crate::{ast::*, interpreter::Instruction, types::*, vec1::Vec1};
+use std::rc::Rc;
 pub use wast::parser::ParseBuffer as Buffer;
 use wast::parser::{self, Cursor, Parse, Parser, Peek, Result};
 pub use wast::Error;
@@ -552,11 +553,11 @@ impl<'a> Parse<'a> for Type {
                 }
 
                 Ok(Type::Function {
-                    arguments,
-                    output_types,
+                    arguments: Rc::new(arguments),
+                    output_types: Rc::new(output_types),
                 })
             } else if lookahead.peek::<keyword::record>() {
-                Ok(Type::Record(parser.parse()?))
+                Ok(Type::Record(Rc::new(parser.parse()?)))
             } else {
                 Err(lookahead.error())
             }

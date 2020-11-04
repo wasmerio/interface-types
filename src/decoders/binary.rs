@@ -5,6 +5,7 @@ use nom::{
     error::{make_error, ErrorKind, ParseError},
     Err, IResult,
 };
+use std::rc::Rc;
 use std::{convert::TryFrom, str};
 
 /// Parse a type kind.
@@ -375,15 +376,15 @@ fn types<'input, E: ParseError<&'input [u8]>>(
                 consume!((input, output_types) = list(input, ty)?);
 
                 types.push(Type::Function {
-                    arguments,
-                    output_types,
+                    arguments: Rc::new(arguments),
+                    output_types: Rc::new(output_types),
                 });
             }
 
             TypeKind::Record => {
                 consume!((input, record_type) = record_type(input)?);
 
-                types.push(Type::Record(record_type));
+                types.push(Type::Record(Rc::new(record_type)));
             }
         }
     }

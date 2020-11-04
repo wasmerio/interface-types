@@ -3,8 +3,8 @@
 use crate::ast::FunctionArg;
 use crate::types::RecordType;
 use crate::{types::InterfaceType, values::InterfaceValue};
-use std::{cell::Cell, ops::Deref};
 use std::rc::Rc;
+use std::{cell::Cell, ops::Deref};
 
 pub trait TypedIndex: Copy + Clone {
     fn new(index: usize) -> Self;

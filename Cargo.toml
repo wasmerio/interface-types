@@ -1,6 +1,6 @@
 [package]
 name = "wasmer-interface-types-fl"
-version = "0.17.11"
+version = "0.17.12"
 description = "WebAssembly Interface Types library for Wasmer"
 license = "MIT"
 authors = ["The Wasmer Engineering Team <engineering@wasmer.io>"]
@@ -14,7 +14,7 @@ wast = "8.0"
 # `serde` is useful only to simplify the users' life. It is not
 # required by WIT itself, is is used to cross the boundary between the
 # host and WIT more easily, but it is not used inside Wasm.
-serde = { version = "1.0", features = ["derive"], optional = true }
+serde = { version = "1.0", features = ["derive", "rc"], optional = true }
 serde_json = "1.0"
 safe-transmute = "0.11.0"
 log = "0.4.11"

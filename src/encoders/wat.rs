@@ -224,7 +224,7 @@ impl<'input> ToString for &Type {
 
             Type::Record(record_type) => format!(
                 r#"(@interface type ({record_type}))"#,
-                record_type = record_type.to_string(),
+                record_type = record_type.as_ref().to_string(),
             ),
         }
     }

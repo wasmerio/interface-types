@@ -8,6 +8,7 @@ use crate::{
 
 use serde::Deserialize;
 use serde::Serialize;
+use std::rc::Rc;
 use std::str;
 
 /// Represents the kind of type.
@@ -40,10 +41,10 @@ pub enum Type {
     /// ```
     Function {
         /// Types for the parameters (`(param (name i32))`).
-        arguments: Vec<FunctionArg>,
+        arguments: Rc<Vec<FunctionArg>>,
 
         /// Types for the results (`(result …)`).
-        output_types: Vec<InterfaceType>,
+        output_types: Rc<Vec<InterfaceType>>,
     },
 
     /// A record type, like:
@@ -51,7 +52,7 @@ pub enum Type {
     /// ```wasm,ignore
     /// (@interface type (record string i32))
     /// ```
-    Record(RecordType),
+    Record(Rc<RecordType>),
 }
 
 /// Represents an imported function.
