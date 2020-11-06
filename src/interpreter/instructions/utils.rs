@@ -184,7 +184,9 @@ where
     let outputs = local_or_import.call(&inputs).map_err(|_| {
         InstructionError::new(
             instruction.clone(),
-            InstructionErrorKind::LocalOrImportCall { function_index },
+            InstructionErrorKind::LocalOrImportCall {
+                function_name: local_or_import.name().to_string(),
+            },
         )
     })?;
 

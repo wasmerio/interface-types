@@ -31,13 +31,13 @@ executable_instruction!(
 
             super::check_function_signature(&**instance, local_or_import, &inputs, instruction.clone())?;
 
-            log::trace!("call-core: calling {} with arguments: {:?}", function_index, inputs);
+            log::trace!("call-core: calling {} with arguments: {:?}", local_or_import.name(), inputs);
 
             let outputs = local_or_import.call(&inputs).map_err(|_| {
                 InstructionError::new(
                     instruction.clone(),
                     InstructionErrorKind::LocalOrImportCall {
-                        function_index,
+                        function_name: local_or_import.name().to_string(),
                     },
                 )
             })?;

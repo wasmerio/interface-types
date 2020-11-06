@@ -43,6 +43,7 @@ impl LocalImportIndex for FunctionIndex {
 }
 
 pub trait Export {
+    fn name(&self) -> &str;
     fn inputs_cardinality(&self) -> usize;
     fn outputs_cardinality(&self) -> usize;
     fn arguments(&self) -> &[FunctionArg];
@@ -51,6 +52,7 @@ pub trait Export {
 }
 
 pub trait LocalImport {
+    fn name(&self) -> &str;
     fn inputs_cardinality(&self) -> usize;
     fn outputs_cardinality(&self) -> usize;
     fn arguments(&self) -> &[FunctionArg];
@@ -81,6 +83,10 @@ where
 }
 
 impl Export for () {
+    fn name(&self) -> &str {
+        ""
+    }
+
     fn inputs_cardinality(&self) -> usize {
         0
     }
@@ -103,6 +109,10 @@ impl Export for () {
 }
 
 impl LocalImport for () {
+    fn name(&self) -> &str {
+        ""
+    }
+
     fn inputs_cardinality(&self) -> usize {
         0
     }

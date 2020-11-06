@@ -130,8 +130,8 @@ pub enum InstructionErrorKind {
 
     /// Failed to call a local or import function.
     LocalOrImportCall {
-        /// The local or import function index that has been called.
-        function_index: u32,
+        /// The local or import function name that has been called.
+        function_name: String,
     },
 
     /// The memory doesn't exist.
@@ -237,10 +237,10 @@ impl Display for InstructionErrorKind {
                 function_index, expected.0, expected.1, received.0, received.1,
             ),
 
-            Self::LocalOrImportCall  { function_index } => write!(
+            Self::LocalOrImportCall  { function_name } => write!(
                 formatter,
                 "failed while calling the local or import function `{}`",
-                function_index
+                function_name
             ),
 
             Self::MemoryIsMissing { memory_index } => write!(
