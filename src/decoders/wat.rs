@@ -32,7 +32,7 @@ mod keyword {
     custom_keyword!(u32);
     custom_keyword!(u64);
     custom_keyword!(string);
-    custom_keyword!(Array);
+    custom_keyword!(array);
 
     // Instructions.
     custom_keyword!(argument_get = "arg.get");
@@ -86,7 +86,6 @@ mod keyword {
 impl Parse<'_> for InterfaceType {
     fn parse(parser: Parser<'_>) -> Result<Self> {
         let mut lookahead = parser.lookahead1();
-
         if lookahead.peek::<keyword::s8>() {
             parser.parse::<keyword::s8>()?;
 
@@ -131,10 +130,12 @@ impl Parse<'_> for InterfaceType {
             parser.parse::<keyword::string>()?;
 
             Ok(InterfaceType::String)
-        } else if lookahead.peek::<keyword::Array>() {
-            parser.parse::<keyword::Array>()?;
+        } else if lookahead.peek::<keyword::array>() {
+            parser.parse::<keyword::array>()?;
 
-            Ok(InterfaceType::Array(Box::new(parser.parse()?)))
+            let array_type = parser.parens(|p| p.parse())?;
+
+            Ok(InterfaceType::Array(Box::new(array_type)))
         } else if lookahead.peek::<keyword::anyref>() {
             parser.parse::<keyword::anyref>()?;
 
@@ -148,6 +149,8 @@ impl Parse<'_> for InterfaceType {
 
             Ok(InterfaceType::I64)
         } else if lookahead.peek::<keyword::record>() {
+            parser.parse::<keyword::record>()?;
+
             Ok(InterfaceType::Record(parser.parse()?))
         } else {
             Err(lookahead.error())

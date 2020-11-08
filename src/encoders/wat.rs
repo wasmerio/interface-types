@@ -73,7 +73,7 @@ impl ToString for &InterfaceType {
             InterfaceType::F32 => "f32".to_string(),
             InterfaceType::F64 => "f64".to_string(),
             InterfaceType::String => "string".to_string(),
-            InterfaceType::Array(ty) => format!("Array<{:?}>", ty),
+            InterfaceType::Array(ty) => format!("array ({})", ty.as_ref().to_string()),
             InterfaceType::Anyref => "anyref".to_string(),
             InterfaceType::I32 => "i32".to_string(),
             InterfaceType::I64 => "i64".to_string(),
@@ -85,7 +85,7 @@ impl ToString for &InterfaceType {
 impl ToString for &RecordType {
     fn to_string(&self) -> String {
         format!(
-            "record ${} {{\n{fields}}}",
+            "record ${} (\n{fields})",
             self.name,
             fields = self
                 .fields
@@ -145,10 +145,10 @@ impl ToString for &Instruction {
             Instruction::StringLowerMemory => "string.lower_memory".into(),
             Instruction::StringSize => "string.size".into(),
             Instruction::ArrayLiftMemory { value_type } => {
-                format!("array.lift_memory {:?}", value_type)
+                format!("array.lift_memory {}", value_type.to_string())
             }
             Instruction::ArrayLowerMemory { value_type } => {
-                format!("array.lower_memory {:?}", value_type)
+                format!("array.lower_memory {}", value_type.to_string())
             }
             /*
             Instruction::ArraySize => "byte_array.size".into(),
