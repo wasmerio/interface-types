@@ -184,9 +184,21 @@ impl Parse<'_> for RecordType {
                     })?
                     .to_string();
 
+                if !name.ends_with(':') {
+                    parser.step(|cursor| {
+                        if let Some((":", rest)) = cursor.reserved() {
+                            return Ok(("", rest));
+                        }
+                        Err(cursor.error("expected : between an argument and a type"))
+                    })?;
+                }
+
                 let ty = parser.parse()?;
 
-                fields.push(RecordFieldType { name, ty });
+                fields.push(RecordFieldType {
+                    name: name.trim_end_matches(":").to_string(),
+                    ty,
+                });
             }
             Ok(())
         })?;
