@@ -290,7 +290,7 @@ where
             let record =
                 record_lift_memory_(&**instance, record_type, offset, instruction.clone())?;
 
-            log::trace!("record.lift_memory: pushing {:?} on the stack", record);
+            log::debug!("record.lift_memory: pushing {:?} on the stack", record);
             runtime.stack.push(record);
 
             Ok(())
@@ -390,12 +390,12 @@ where
                         instruction.clone(),
                     )?;
 
-                    log::trace!("record.lower_memory: obtained {:?} values on the stack for record type = {}", record_fields, record_type_id);
+                    log::debug!("record.lower_memory: obtained {:?} values on the stack for record type = {}", record_fields, record_type_id);
 
                     let offset =
                         record_lower_memory_(*instance, instruction.clone(), record_fields)?;
 
-                    log::trace!("record.lower_memory: pushing {} on the stack", offset);
+                    log::debug!("record.lower_memory: pushing {} on the stack", offset);
                     runtime.stack.push(InterfaceValue::I32(offset));
 
                     Ok(())
