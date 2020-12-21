@@ -1,7 +1,9 @@
 //! This module defines the WIT types.
 
 use crate::vec1::Vec1;
-use serde::{Deserialize, Serialize};
+
+use serde::Deserialize;
+use serde::Serialize;
 
 /// Represents the types supported by WIT.
 #[derive(PartialEq, Eq, Debug, Clone, Hash, Serialize, Deserialize)]

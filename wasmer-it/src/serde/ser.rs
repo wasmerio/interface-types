@@ -1,11 +1,13 @@
 //! Provides a serializer from Rust value to WIT values.
 
-use crate::{values::InterfaceValue, vec1::Vec1};
+use crate::IValue;
+use crate::IValueImpl;
+use crate::Vec1;
 use serde::{ser, Serialize};
 use std::fmt::{self, Display};
 
 /// Serialize a type `T` that implements the `Serialize` trait to an
-/// `InterfaceValue`.
+/// `IValue`.
 ///
 /// This is not a requirement to use WIT, but Serde provides an even
 /// nicer API to the user to send its complex types to WIT.
@@ -14,7 +16,7 @@ use std::fmt::{self, Display};
 ///
 /// ```rust
 /// use wasmer_interface_types::{
-///     values::{InterfaceValue, to_interface_value},
+///     values::{IValue, to_interface_value},
 ///     vec1::Vec1,
 /// };
 /// use serde::Serialize;
@@ -37,18 +39,19 @@ use std::fmt::{self, Display};
 ///
 /// assert_eq!(
 ///     to_interface_value(&input).unwrap(),
-///     InterfaceValue::Record(Vec1::new(vec![
-///         InterfaceValue::String("abc".to_string()),
-///         InterfaceValue::Record(Vec1::new(vec![InterfaceValue::I32(1), InterfaceValue::I64(2)]).unwrap()),
-///         InterfaceValue::F32(3.),
+///     IValue::Record(Vec1::new(vec![
+///         IValue::String("abc".to_string()),
+///         IValue::Record(Vec1::new(vec![IValue::I32(1), IValue::I64(2)]).unwrap()),
+///         IValue::F32(3.),
 ///     ]).unwrap()),
 /// );
 /// ```
-pub fn to_interface_value<T>(value: &T) -> Result<InterfaceValue, SerializeError>
+pub fn to_interface_value<T>(value: &T) -> Result<IValue, SerializeError>
 where
     T: Serialize,
 {
     let mut serializer = Serializer::new();
+    let value = ValueImpl(value);
     value.serialize(&mut serializer)?;
 
     if serializer.values.len() != 1 {
@@ -61,14 +64,14 @@ where
         } else {
             let first_value = first_values.pop().unwrap(); // this `unwrap` is safe because we are sure the length is 1.
 
-            Ok(first_value)
+            Ok(first_value.0)
         }
     }
 }
 
 /// The serializer.
 struct Serializer {
-    values: Vec<Vec<InterfaceValue>>,
+    values: Vec<Vec<IValueImpl>>,
 }
 
 impl Serializer {
@@ -78,7 +81,7 @@ impl Serializer {
         }
     }
 
-    fn last(&mut self) -> &mut Vec<InterfaceValue> {
+    fn last(&mut self) -> &mut Vec<IValueImpl> {
         self.values.last_mut().unwrap()
     }
 
@@ -86,7 +89,7 @@ impl Serializer {
         self.values.push(Vec::with_capacity(capacity));
     }
 
-    fn pop(&mut self) -> Result<Vec<InterfaceValue>, SerializeError> {
+    fn pop(&mut self) -> Result<Vec<IValueImpl>, SerializeError> {
         // The first `vec` contains the final result. It is forbidden
         // to `pop` it as is.
         if self.values.len() < 2 {
@@ -361,9 +364,10 @@ impl<'a> ser::SerializeSeq for &'a mut Serializer {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        let record = InterfaceValue::Record(
-            Vec1::new(self.pop()?).map_err(|_| Self::Error::RecordNeedsAtLeastOneField)?,
-        );
+        let values = self.pop()?.into_iter().map(|v| v.0).collect::<Vec<_>>();
+
+        let record = IValue::Array(values);
+        let record = IValueImpl(record);
         self.last().push(record);
 
         Ok(())
@@ -398,9 +402,11 @@ impl<'a> ser::SerializeTupleStruct for &'a mut Serializer {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        let record = InterfaceValue::Record(
-            Vec1::new(self.pop()?).map_err(|_| Self::Error::RecordNeedsAtLeastOneField)?,
-        );
+        let values = self.pop()?.into_iter().map(|v| v.0).collect::<Vec<_>>();
+
+        let record =
+            IValue::Record(Vec1::new(values).map_err(|_| Self::Error::RecordNeedsAtLeastOneField)?);
+        let record = ValueImpl(record);
         self.last().push(record);
 
         Ok(())
@@ -442,9 +448,11 @@ impl<'a> ser::SerializeMap for &'a mut Serializer {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        let record = InterfaceValue::Record(
-            Vec1::new(self.pop()?).map_err(|_| Self::Error::RecordNeedsAtLeastOneField)?,
-        );
+        let values = self.pop()?.into_iter().map(|v| v.0).collect::<Vec<_>>();
+
+        let record =
+            IValue::Record(Vec1::new(values).map_err(|_| Self::Error::RecordNeedsAtLeastOneField)?);
+        let record = ValueImpl(record);
         self.last().push(record);
 
         Ok(())
@@ -463,9 +471,11 @@ impl<'a> ser::SerializeStruct for &'a mut Serializer {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        let record = InterfaceValue::Record(
-            Vec1::new(self.pop()?).map_err(|_| Self::Error::RecordNeedsAtLeastOneField)?,
-        );
+        let values = self.pop()?.into_iter().map(|v| v.0).collect::<Vec<_>>();
+
+        let record =
+            IValue::Record(Vec1::new(values).map_err(|_| Self::Error::RecordNeedsAtLeastOneField)?);
+        let record = ValueImpl(record);
         self.last().push(record);
 
         Ok(())
@@ -502,7 +512,7 @@ mod tests {
             #[allow(non_snake_case)]
             fn $test_name() {
                 let input: $ty = $value;
-                let output = InterfaceValue::$variant($value);
+                let output = IValue::$variant($value);
 
                 assert_eq!(to_interface_value(&input).unwrap(), output);
             }
@@ -533,7 +543,7 @@ mod tests {
         struct S(i8);
 
         let input = S(42);
-        let output = InterfaceValue::S8(42);
+        let output = IValue::S8(42);
 
         assert_eq!(to_interface_value(&input).unwrap(), output);
     }
@@ -545,7 +555,7 @@ mod tests {
         struct S(i8, f32);
 
         let input = S(7, 42.);
-        let output = InterfaceValue::Record(vec1![InterfaceValue::S8(7), InterfaceValue::F32(42.)]);
+        let output = IValue::Record(vec1![IValue::S8(7), IValue::F32(42.)]);
 
         assert_eq!(to_interface_value(&input).unwrap(), output);
     }
@@ -560,7 +570,7 @@ mod tests {
         }
 
         let input = S { x: 7, y: 42. };
-        let output = InterfaceValue::Record(vec1![InterfaceValue::S8(7), InterfaceValue::F32(42.)]);
+        let output = IValue::Record(vec1![IValue::S8(7), IValue::F32(42.)]);
 
         assert_eq!(to_interface_value(&input).unwrap(), output);
     }
@@ -585,17 +595,9 @@ mod tests {
             p1: Point { x: 1, y: 2, z: 3 },
             p2: Point { x: 4, y: 5, z: 6 },
         };
-        let output = InterfaceValue::Record(vec1![
-            InterfaceValue::Record(vec1![
-                InterfaceValue::I32(1),
-                InterfaceValue::I32(2),
-                InterfaceValue::I32(3),
-            ]),
-            InterfaceValue::Record(vec1![
-                InterfaceValue::I32(4),
-                InterfaceValue::I32(5),
-                InterfaceValue::I32(6),
-            ]),
+        let output = IValue::Record(vec1![
+            IValue::Record(vec1![IValue::I32(1), IValue::I32(2), IValue::I32(3),]),
+            IValue::Record(vec1![IValue::I32(4), IValue::I32(5), IValue::I32(6),]),
         ]);
 
         assert_eq!(to_interface_value(&input).unwrap(), output);

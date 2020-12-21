@@ -1,0 +1,9 @@
+[package]
+name = "fluence-it-types"
+version = "0.1.0"
+description = "Definitions of IValue and IType"
+authors = ["Fluence Labs"]
+edition = "2018"
+
+[dependencies]
+serde = { version = "1.0.118", features = ["derive", "rc"]}

@@ -1,16 +1,13 @@
 //! Provides a deserializer from WIT values to Rust value.
 
-use crate::{
-    types::InterfaceType,
-    values::{FlattenInterfaceValueIterator, InterfaceValue},
-};
+use crate::{values::FlattenIValueIterator, IType, IValue};
 use serde::{de, Deserialize};
 use std::{
     fmt::{self, Display},
     iter::Peekable,
 };
 
-/// Deserialize a set of `InterfaceValue`s to a type `T` that
+/// Deserialize a set of `IValue`s to a type `T` that
 /// implements the `Deserialize` trait.
 ///
 /// This is not a requirement to use WIT, but Serde provides an even
@@ -21,7 +18,7 @@ use std::{
 ///
 /// ```rust
 /// use wasmer_interface_types::{
-///     values::{InterfaceValue, from_interface_values},
+///     values::{IValue, from_interface_values},
 ///     vec1::Vec1,
 /// };
 /// use serde::Deserialize;
@@ -36,10 +33,10 @@ use std::{
 ///     y: f32,
 /// };
 ///
-/// let values = vec![InterfaceValue::Record(Vec1::new(vec![
-///     InterfaceValue::String("abc".to_string()),
-///     InterfaceValue::Record(Vec1::new(vec![InterfaceValue::I32(1), InterfaceValue::I64(2)]).unwrap()),
-///     InterfaceValue::F32(3.),
+/// let values = vec![IValue::Record(Vec1::new(vec![
+///     IValue::String("abc".to_string()),
+///     IValue::Record(Vec1::new(vec![IValue::I32(1), IValue::I64(2)]).unwrap()),
+///     IValue::F32(3.),
 /// ]).unwrap())];
 /// let t = from_interface_values::<T>(&values).unwrap();
 ///
@@ -52,7 +49,7 @@ use std::{
 ///     }
 /// );
 /// ```
-pub fn from_interface_values<'a, T>(values: &'a [InterfaceValue]) -> Result<T, DeserializeError>
+pub fn from_interface_values<'a, T>(values: &'a [IValue]) -> Result<T, DeserializeError>
 where
     T: Deserialize<'a>,
 {
@@ -66,15 +63,15 @@ where
 }
 
 /// The deserializer. The iterator iterates over `InterfaceValue`s,
-/// all flatten, see `FlattenInterfaceValueIterator`.
+/// all flatten, see `FlattenIValueIterator`.
 struct Deserializer<'de> {
-    iterator: Peekable<FlattenInterfaceValueIterator<'de>>,
+    iterator: Peekable<FlattenIValueIterator<'de>>,
 }
 
 impl<'de> Deserializer<'de> {
     pub fn new(input: &'de [InterfaceValue]) -> Deserializer<'de> {
         Deserializer {
-            iterator: FlattenInterfaceValueIterator::new(input).peekable(),
+            iterator: FlattenIValueIterator::new(input).peekable(),
         }
     }
 }
@@ -83,14 +80,14 @@ macro_rules! next {
     ($method_name:ident, $variant:ident, $type:ty) => {
         fn $method_name(&mut self) -> Result<$type, DeserializeError> {
             match self.iterator.peek() {
-                Some(InterfaceValue::$variant(value)) => {
+                Some(IValue::$variant(value)) => {
                     self.iterator.next();
 
                     Ok(*value)
                 }
 
                 Some(wrong_value) => Err(DeserializeError::TypeMismatch {
-                    expected_type: InterfaceType::$variant,
+                    expected_type: IType::$variant,
                     received_value: (*wrong_value).clone(),
                 }),
 
@@ -114,14 +111,14 @@ impl<'de> Deserializer<'de> {
 
     fn next_string(&mut self) -> Result<&'de str, DeserializeError> {
         match self.iterator.peek() {
-            Some(InterfaceValue::String(v)) => {
+            Some(IValue::String(v)) => {
                 self.iterator.next();
 
                 Ok(v)
             }
 
             Some(wrong_value) => Err(DeserializeError::TypeMismatch {
-                expected_type: InterfaceType::String,
+                expected_type: IType::String,
                 received_value: (*wrong_value).clone(),
             }),
 
@@ -131,7 +128,7 @@ impl<'de> Deserializer<'de> {
 
     fn next_array(&mut self) -> Result<&'de [u8], DeserializeError> {
         match self.iterator.peek() {
-            Some(InterfaceValue::Array(_)) => {
+            Some(IValue::Array(_)) => {
                 self.iterator.next();
 
                 // Ok(v)
@@ -141,7 +138,7 @@ impl<'de> Deserializer<'de> {
 
             Some(wrong_value) => Err(DeserializeError::TypeMismatch {
                 // TODO: change default
-                expected_type: InterfaceType::Array(Box::new(InterfaceType::S8)),
+                expected_type: IType::Array(Box::new(IType::S8)),
                 received_value: (*wrong_value).clone(),
             }),
 
@@ -165,10 +162,10 @@ pub enum DeserializeError {
     /// The current value hasn't the expected type.
     TypeMismatch {
         /// The expected type.
-        expected_type: InterfaceType,
+        expected_type: IType,
 
         /// The received type.
-        received_value: InterfaceValue,
+        received_value: IValue,
     },
 
     /// Arbitrary message.
@@ -209,21 +206,21 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: de::Visitor<'de>,
     {
         match self.iterator.peek() {
-            Some(InterfaceValue::S8(_)) => self.deserialize_i8(visitor),
-            Some(InterfaceValue::S16(_)) => self.deserialize_i16(visitor),
-            Some(InterfaceValue::S32(_)) => self.deserialize_i32(visitor),
-            Some(InterfaceValue::S64(_)) => self.deserialize_i64(visitor),
-            Some(InterfaceValue::U8(_)) => self.deserialize_u8(visitor),
-            Some(InterfaceValue::U16(_)) => self.deserialize_u16(visitor),
-            Some(InterfaceValue::U32(_)) => self.deserialize_u32(visitor),
-            Some(InterfaceValue::U64(_)) => self.deserialize_u64(visitor),
-            Some(InterfaceValue::F32(_)) => self.deserialize_f32(visitor),
-            Some(InterfaceValue::F64(_)) => self.deserialize_f64(visitor),
-            Some(InterfaceValue::String(_)) => self.deserialize_string(visitor),
-            Some(InterfaceValue::Array(_)) => self.deserialize_bytes(visitor),
-            Some(InterfaceValue::I32(_)) => self.deserialize_i32(visitor),
-            Some(InterfaceValue::I64(_)) => self.deserialize_i64(visitor),
-            Some(InterfaceValue::Record(..)) => unreachable!("Records should have been flattened."), // already flattened
+            Some(IValue::S8(_)) => self.deserialize_i8(visitor),
+            Some(IValue::S16(_)) => self.deserialize_i16(visitor),
+            Some(IValue::S32(_)) => self.deserialize_i32(visitor),
+            Some(IValue::S64(_)) => self.deserialize_i64(visitor),
+            Some(IValue::U8(_)) => self.deserialize_u8(visitor),
+            Some(IValue::U16(_)) => self.deserialize_u16(visitor),
+            Some(IValue::U32(_)) => self.deserialize_u32(visitor),
+            Some(IValue::U64(_)) => self.deserialize_u64(visitor),
+            Some(IValue::F32(_)) => self.deserialize_f32(visitor),
+            Some(IValue::F64(_)) => self.deserialize_f64(visitor),
+            Some(IValue::String(_)) => self.deserialize_string(visitor),
+            Some(IValue::Array(_)) => self.deserialize_bytes(visitor),
+            Some(IValue::I32(_)) => self.deserialize_i32(visitor),
+            Some(IValue::I64(_)) => self.deserialize_i64(visitor),
+            Some(IValue::Record(..)) => unreachable!("Records should have been flattened."), // already flattened
             None => Err(DeserializeError::InputEmpty),
         }
     }
@@ -253,7 +250,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: de::Visitor<'de>,
     {
-        // Both `InterfaceValue::S32` and `InterfaceValue::I32`
+        // Both `IValue::S32` and `IValue::I32`
         // represent `i32`.
         visitor.visit_i32(self.next_s32().or_else(|_| self.next_i32())?)
     }
@@ -262,7 +259,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: de::Visitor<'de>,
     {
-        // Both `InterfaceValue::S64` and `InterfaceValue::I64`
+        // Both `IValue::S64` and `IValue::I64`
         // represent `i64`.
         visitor.visit_i64(self.next_s64().or_else(|_| self.next_i64())?)
     }
@@ -489,7 +486,7 @@ mod tests {
             #[test]
             #[allow(non_snake_case)]
             fn $test_name() {
-                let input = vec![InterfaceValue::$variant($value)];
+                let input = vec![IValue::$variant($value)];
                 let output: $ty = $value;
 
                 assert_eq!(from_interface_values::<$ty>(&input).unwrap(), output);
@@ -518,7 +515,7 @@ mod tests {
     #[allow(non_snake_case)]
     fn test_deserialize_value__str() {
         let foo = "foo".to_string();
-        let values = vec![InterfaceValue::String(foo)];
+        let values = vec![IValue::String(foo)];
         let input: &str = from_interface_values(&values).unwrap();
         let output: &str = "foo";
 
@@ -534,7 +531,7 @@ mod tests {
         #[derive(Deserialize, Debug, PartialEq)]
         struct S(i8);
 
-        let input = vec![InterfaceValue::Record(vec1![InterfaceValue::S8(42)])];
+        let input = vec![IValue::Record(vec1![IValue::S8(42)])];
         let output = S(42);
 
         assert_eq!(from_interface_values::<S>(&input).unwrap(), output);
@@ -546,10 +543,7 @@ mod tests {
         #[derive(Deserialize, Debug, PartialEq)]
         struct S(i8, f32);
 
-        let input = vec![InterfaceValue::Record(vec1![
-            InterfaceValue::S8(7),
-            InterfaceValue::F32(42.),
-        ])];
+        let input = vec![IValue::Record(vec1![IValue::S8(7), IValue::F32(42.),])];
         let output = S(7, 42.);
 
         assert_eq!(from_interface_values::<S>(&input).unwrap(), output);
@@ -564,10 +558,7 @@ mod tests {
             y: f32,
         }
 
-        let input = vec![InterfaceValue::Record(vec1![
-            InterfaceValue::S8(7),
-            InterfaceValue::F32(42.),
-        ])];
+        let input = vec![IValue::Record(vec1![IValue::S8(7), IValue::F32(42.),])];
         let output = S { x: 7, y: 42. };
 
         assert_eq!(from_interface_values::<S>(&input).unwrap(), output);
@@ -589,17 +580,9 @@ mod tests {
             p2: Point,
         }
 
-        let input = vec![InterfaceValue::Record(vec1![
-            InterfaceValue::Record(vec1![
-                InterfaceValue::I32(1),
-                InterfaceValue::I32(2),
-                InterfaceValue::I32(3),
-            ]),
-            InterfaceValue::Record(vec1![
-                InterfaceValue::I32(4),
-                InterfaceValue::I32(5),
-                InterfaceValue::I32(6),
-            ]),
+        let input = vec![IValue::Record(vec1![
+            IValue::Record(vec1![IValue::I32(1), IValue::I32(2), IValue::I32(3),]),
+            IValue::Record(vec1![IValue::I32(4), IValue::I32(5), IValue::I32(6),]),
         ])];
         let output = Line {
             p1: Point { x: 1, y: 2, z: 3 },

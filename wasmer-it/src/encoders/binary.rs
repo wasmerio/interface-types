@@ -3,6 +3,11 @@
 use crate::{ast::*, interpreter::Instruction, types::*};
 use std::io::{self, Write};
 
+use crate::IType;
+use crate::ITypeImpl;
+use crate::RecordFieldTypeImpl;
+use crate::RecordTypeImpl;
+
 /// A trait for converting a value to bytes.
 pub trait ToBytes<W>
 where
@@ -106,31 +111,31 @@ where
 }
 
 /// Encode an `InterfaceType` into bytes.
-impl<W> ToBytes<W> for InterfaceType
+impl<W> ToBytes<W> for ITypeImpl
 where
     W: Write,
 {
     fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
-        match self {
-            InterfaceType::S8 => 0x00_u8.to_bytes(writer),
-            InterfaceType::S16 => 0x01_u8.to_bytes(writer),
-            InterfaceType::S32 => 0x02_u8.to_bytes(writer),
-            InterfaceType::S64 => 0x03_u8.to_bytes(writer),
-            InterfaceType::U8 => 0x04_u8.to_bytes(writer),
-            InterfaceType::U16 => 0x05_u8.to_bytes(writer),
-            InterfaceType::U32 => 0x06_u8.to_bytes(writer),
-            InterfaceType::U64 => 0x07_u8.to_bytes(writer),
-            InterfaceType::F32 => 0x08_u8.to_bytes(writer),
-            InterfaceType::F64 => 0x09_u8.to_bytes(writer),
-            InterfaceType::String => 0x0a_u8.to_bytes(writer),
-            InterfaceType::Array(ty) => {
+        match self.0 {
+            IType::S8 => 0x00_u8.to_bytes(writer),
+            IType::S16 => 0x01_u8.to_bytes(writer),
+            IType::S32 => 0x02_u8.to_bytes(writer),
+            IType::S64 => 0x03_u8.to_bytes(writer),
+            IType::U8 => 0x04_u8.to_bytes(writer),
+            IType::U16 => 0x05_u8.to_bytes(writer),
+            IType::U32 => 0x06_u8.to_bytes(writer),
+            IType::U64 => 0x07_u8.to_bytes(writer),
+            IType::F32 => 0x08_u8.to_bytes(writer),
+            IType::F64 => 0x09_u8.to_bytes(writer),
+            IType::String => 0x0a_u8.to_bytes(writer),
+            IType::Array(ty) => {
                 0x36_u8.to_bytes(writer)?;
                 ty.to_bytes(writer)
             }
-            InterfaceType::Anyref => 0x0b_u8.to_bytes(writer),
-            InterfaceType::I32 => 0x0c_u8.to_bytes(writer),
-            InterfaceType::I64 => 0x0d_u8.to_bytes(writer),
-            InterfaceType::Record(record_id) => {
+            IType::Anyref => 0x0b_u8.to_bytes(writer),
+            IType::I32 => 0x0c_u8.to_bytes(writer),
+            IType::I64 => 0x0d_u8.to_bytes(writer),
+            IType::Record(record_id) => {
                 0x0e_u8.to_bytes(writer)?;
                 record_id.to_bytes(writer)
             }
@@ -139,24 +144,26 @@ where
 }
 
 /// Encode a `RecordType` into bytes.
-impl<W> ToBytes<W> for RecordFieldType
+impl<W> ToBytes<W> for RecordFieldTypeImpl
 where
     W: Write,
 {
     fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
-        self.name.as_str().to_bytes(writer)?;
-        self.ty.to_bytes(writer)
+        let record_field_type = &self.0;
+        record_field_type.name.as_str().to_bytes(writer)?;
+        record_field_type.ty.to_bytes(writer)
     }
 }
 
 /// Encode a `RecordType` into bytes.
-impl<W> ToBytes<W> for RecordType
+impl<W> ToBytes<W> for RecordTypeImpl
 where
     W: Write,
 {
     fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
-        self.name.as_str().to_bytes(writer)?;
-        self.fields.to_bytes(writer)
+        let record_type = &self.0;
+        record_type.name.as_str().to_bytes(writer)?;
+        record_type.fields.to_bytes(writer)
     }
 }
 

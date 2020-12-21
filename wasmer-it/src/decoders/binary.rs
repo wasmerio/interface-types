@@ -1,5 +1,8 @@
 //! Parse the WIT binary representation into an [AST](crate::ast).
 
+use crate::IType;
+use crate::RecordFieldType;
+use crate::RecordType;
 use crate::{ast::*, interpreter::Instruction, types::*};
 use nom::{
     error::{make_error, ErrorKind, ParseError},
@@ -100,7 +103,7 @@ fn function_arg<'input, E: ParseError<&'input [u8]>>(
 /// Parse an interface type.
 fn ty<'input, E: ParseError<&'input [u8]>>(
     mut input: &'input [u8],
-) -> IResult<&'input [u8], InterfaceType, E> {
+) -> IResult<&'input [u8], IType, E> {
     if input.is_empty() {
         return Err(Err::Error(make_error(input, ErrorKind::Eof)));
     }
@@ -108,29 +111,29 @@ fn ty<'input, E: ParseError<&'input [u8]>>(
     consume!((input, opcode) = byte(input)?);
 
     let ty = match opcode {
-        0x00 => InterfaceType::S8,
-        0x01 => InterfaceType::S16,
-        0x02 => InterfaceType::S32,
-        0x03 => InterfaceType::S64,
-        0x04 => InterfaceType::U8,
-        0x05 => InterfaceType::U16,
-        0x06 => InterfaceType::U32,
-        0x07 => InterfaceType::U64,
-        0x08 => InterfaceType::F32,
-        0x09 => InterfaceType::F64,
-        0x0a => InterfaceType::String,
+        0x00 => IType::S8,
+        0x01 => IType::S16,
+        0x02 => IType::S32,
+        0x03 => IType::S64,
+        0x04 => IType::U8,
+        0x05 => IType::U16,
+        0x06 => IType::U32,
+        0x07 => IType::U64,
+        0x08 => IType::F32,
+        0x09 => IType::F64,
+        0x0a => IType::String,
         0x36 => {
             consume!((input, array_value_type) = ty(input)?);
 
-            InterfaceType::Array(Box::new(array_value_type))
+            IType::Array(Box::new(array_value_type))
         }
-        0x0b => InterfaceType::Anyref,
-        0x0c => InterfaceType::I32,
-        0x0d => InterfaceType::I64,
+        0x0b => IType::Anyref,
+        0x0c => IType::I32,
+        0x0d => IType::I64,
         0x0e => {
             consume!((input, record_id) = uleb(input)?);
 
-            InterfaceType::Record(record_id)
+            IType::Record(record_id)
         }
         _ => return Err(Err::Error(make_error(input, ErrorKind::ParseTo))),
     };
@@ -547,7 +550,7 @@ fn interfaces<'input, E: ParseError<&'input [u8]>>(
 ///     ast::{Adapter, Export, Implementation, Import, Interfaces, Type},
 ///     decoders::binary::parse,
 ///     interpreter::Instruction,
-///     types::InterfaceType,
+///     types::IType,
 /// };
 ///
 /// let input = &[
@@ -588,8 +591,8 @@ fn interfaces<'input, E: ParseError<&'input [u8]>>(
 ///     &[] as &[u8],
 ///     Interfaces {
 ///         types: vec![Type::Function {
-///             inputs: vec![InterfaceType::S8],
-///             outputs: vec![InterfaceType::S16],
+///             inputs: vec![IType::S8],
+///             outputs: vec![IType::S16],
 ///         }],
 ///         imports: vec![Import {
 ///             namespace: "ab",
@@ -721,22 +724,22 @@ mod tests {
         let output = Ok((
             &[0x01][..],
             vec![
-                InterfaceType::S8,
-                InterfaceType::S16,
-                InterfaceType::S32,
-                InterfaceType::S64,
-                InterfaceType::U8,
-                InterfaceType::U16,
-                InterfaceType::U32,
-                InterfaceType::U64,
-                InterfaceType::F32,
-                InterfaceType::F64,
-                InterfaceType::String,
-                InterfaceType::Anyref,
-                InterfaceType::I32,
-                InterfaceType::I64,
-                InterfaceType::Record(RecordType {
-                    fields: vec1![InterfaceType::S32],
+                IType::S8,
+                IType::S16,
+                IType::S32,
+                IType::S64,
+                IType::U8,
+                IType::U16,
+                IType::U32,
+                IType::U64,
+                IType::F32,
+                IType::F64,
+                IType::String,
+                IType::Anyref,
+                IType::I32,
+                IType::I64,
+                IType::Record(RecordType {
+                    fields: vec1![IType::S32],
                 }),
             ],
         ));
@@ -766,18 +769,18 @@ mod tests {
             &[0x01][..],
             vec![
                 RecordType {
-                    fields: vec1![InterfaceType::String],
+                    fields: vec1![IType::String],
                 },
                 RecordType {
-                    fields: vec1![InterfaceType::String, InterfaceType::I32],
+                    fields: vec1![IType::String, IType::I32],
                 },
                 RecordType {
                     fields: vec1![
-                        InterfaceType::String,
-                        InterfaceType::Record(RecordType {
-                            fields: vec1![InterfaceType::I32, InterfaceType::I32],
+                        IType::String,
+                        IType::Record(RecordType {
+                            fields: vec1![IType::I32, IType::I32],
                         }),
-                        InterfaceType::F64,
+                        IType::F64,
                     ],
                 },
             ],
@@ -959,11 +962,11 @@ mod tests {
             &[] as &[u8],
             vec![
                 Type::Function {
-                    inputs: vec![InterfaceType::S32, InterfaceType::S32],
-                    outputs: vec![InterfaceType::S32],
+                    inputs: vec![IType::S32, IType::S32],
+                    outputs: vec![IType::S32],
                 },
                 Type::Record(RecordType {
-                    fields: vec1![InterfaceType::S32, InterfaceType::S32],
+                    fields: vec1![IType::S32, IType::S32],
                 }),
             ],
         ));
@@ -1064,8 +1067,8 @@ mod tests {
             &[] as &[u8],
             Interfaces {
                 types: vec![Type::Function {
-                    inputs: vec![InterfaceType::S8],
-                    outputs: vec![InterfaceType::S16],
+                    inputs: vec![IType::S8],
+                    outputs: vec![IType::S16],
                 }],
                 imports: vec![Import {
                     namespace: "ab",

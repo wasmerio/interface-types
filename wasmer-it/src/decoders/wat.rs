@@ -1,5 +1,11 @@
 //! Parse the WIT textual representation into an [AST](crate::ast).
 
+use crate::IType;
+use crate::ITypeImpl;
+use crate::RecordFieldType;
+use crate::RecordFieldTypeImpl;
+use crate::RecordType;
+use crate::RecordTypeImpl;
 use crate::{ast::*, interpreter::Instruction, types::*, vec1::Vec1};
 use std::rc::Rc;
 pub use wast::parser::ParseBuffer as Buffer;
@@ -83,82 +89,82 @@ mod keyword {
     custom_keyword!(swap2 = "swap2");
 }
 
-impl Parse<'_> for InterfaceType {
-    fn parse(parser: Parser<'_>) -> Result<Self> {
+impl Parse<'_> for ITypeImpl {
+    fn parse(parser: Parser<'_>) -> Result<IType> {
         let mut lookahead = parser.lookahead1();
         if lookahead.peek::<keyword::s8>() {
             parser.parse::<keyword::s8>()?;
 
-            Ok(InterfaceType::S8)
+            Ok(IType::S8)
         } else if lookahead.peek::<keyword::s16>() {
             parser.parse::<keyword::s16>()?;
 
-            Ok(InterfaceType::S16)
+            Ok(IType::S16)
         } else if lookahead.peek::<keyword::s32>() {
             parser.parse::<keyword::s32>()?;
 
-            Ok(InterfaceType::S32)
+            Ok(IType::S32)
         } else if lookahead.peek::<keyword::s64>() {
             parser.parse::<keyword::s64>()?;
 
-            Ok(InterfaceType::S64)
+            Ok(IType::S64)
         } else if lookahead.peek::<keyword::u8>() {
             parser.parse::<keyword::u8>()?;
 
-            Ok(InterfaceType::U8)
+            Ok(IType::U8)
         } else if lookahead.peek::<keyword::u16>() {
             parser.parse::<keyword::u16>()?;
 
-            Ok(InterfaceType::U16)
+            Ok(IType::U16)
         } else if lookahead.peek::<keyword::u32>() {
             parser.parse::<keyword::u32>()?;
 
-            Ok(InterfaceType::U32)
+            Ok(IType::U32)
         } else if lookahead.peek::<keyword::u64>() {
             parser.parse::<keyword::u64>()?;
 
-            Ok(InterfaceType::U64)
+            Ok(IType::U64)
         } else if lookahead.peek::<keyword::f32>() {
             parser.parse::<keyword::f32>()?;
 
-            Ok(InterfaceType::F32)
+            Ok(IType::F32)
         } else if lookahead.peek::<keyword::f64>() {
             parser.parse::<keyword::f64>()?;
 
-            Ok(InterfaceType::F64)
+            Ok(IType::F64)
         } else if lookahead.peek::<keyword::string>() {
             parser.parse::<keyword::string>()?;
 
-            Ok(InterfaceType::String)
+            Ok(IType::String)
         } else if lookahead.peek::<keyword::array>() {
             parser.parse::<keyword::array>()?;
 
             let array_type = parser.parens(|p| p.parse())?;
 
-            Ok(InterfaceType::Array(Box::new(array_type)))
+            Ok(IType::Array(Box::new(array_type)))
         } else if lookahead.peek::<keyword::anyref>() {
             parser.parse::<keyword::anyref>()?;
 
-            Ok(InterfaceType::Anyref)
+            Ok(IType::Anyref)
         } else if lookahead.peek::<keyword::i32>() {
             parser.parse::<keyword::i32>()?;
 
-            Ok(InterfaceType::I32)
+            Ok(IType::I32)
         } else if lookahead.peek::<keyword::i64>() {
             parser.parse::<keyword::i64>()?;
 
-            Ok(InterfaceType::I64)
+            Ok(IType::I64)
         } else if lookahead.peek::<keyword::record>() {
             parser.parse::<keyword::record>()?;
 
-            Ok(InterfaceType::Record(parser.parse()?))
+            Ok(IType::Record(parser.parse()?))
         } else {
             Err(lookahead.error())
         }
     }
 }
 
-impl Parse<'_> for RecordType {
+impl Parse<'_> for RecordTypeImpl {
     fn parse(parser: Parser<'_>) -> Result<Self> {
         parser.parse::<keyword::record>()?;
 
@@ -194,19 +200,24 @@ impl Parse<'_> for RecordType {
                 }
 
                 let ty = parser.parse()?;
-
-                fields.push(RecordFieldType {
+                let record_field_type = RecordFieldType {
                     name: name.trim_end_matches(":").to_string(),
                     ty,
-                });
+                };
+                let record_field_type = RecordFieldTypeImpl(record_field_type);
+
+                fields.push(record_field_type);
             }
             Ok(())
         })?;
 
-        Ok(RecordType {
+        let record_type = RecordType {
             name: record_name,
             fields: Vec1::new(fields).expect("Record must have at least one field, zero given."),
-        })
+        };
+        let record_type = RecordTypeImpl(record_type);
+
+        Ok(record_type)
     }
 }
 
@@ -449,7 +460,7 @@ impl Parse<'_> for AtInterface {
 #[derive(PartialEq, Debug)]
 enum FunctionType {
     Header(Vec<FunctionArg>),
-    Output(Vec<InterfaceType>),
+    Output(Vec<IType>),
 }
 
 impl Parse<'_> for FunctionType {
@@ -478,7 +489,7 @@ impl Parse<'_> for FunctionType {
                         })?;
                     }
 
-                    let arg_type: InterfaceType = parser.parse()?;
+                    let arg_type: IType = parser.parse()?;
 
                     arguments.push(FunctionArg {
                         name: arg_name.trim_end_matches(':').to_string(),
@@ -705,7 +716,7 @@ impl<'a> Parse<'a> for Interfaces<'a> {
 ///     ast::{Adapter, Export, Implementation, Import, Interfaces, Type},
 ///     decoders::wat::{parse, Buffer},
 ///     interpreter::Instruction,
-///     types::InterfaceType,
+///     types::IType,
 /// };
 ///
 /// let input = Buffer::new(
@@ -722,8 +733,8 @@ impl<'a> Parse<'a> for Interfaces<'a> {
 /// .unwrap();
 /// let output = Interfaces {
 ///     types: vec![Type::Function {
-///         inputs: vec![InterfaceType::I32],
-///         outputs: vec![InterfaceType::S8],
+///         inputs: vec![IType::I32],
+///         outputs: vec![IType::S8],
 ///     }],
 ///     imports: vec![Import {
 ///         namespace: "ns",
@@ -779,32 +790,29 @@ mod tests {
             "record (field string)",
         ];
         let outputs = vec![
-            InterfaceType::S8,
-            InterfaceType::S16,
-            InterfaceType::S32,
-            InterfaceType::S64,
-            InterfaceType::U8,
-            InterfaceType::U16,
-            InterfaceType::U32,
-            InterfaceType::U64,
-            InterfaceType::F32,
-            InterfaceType::F64,
-            InterfaceType::String,
-            InterfaceType::Anyref,
-            InterfaceType::I32,
-            InterfaceType::I64,
-            InterfaceType::Record(RecordType {
-                fields: vec1![InterfaceType::String],
+            IType::S8,
+            IType::S16,
+            IType::S32,
+            IType::S64,
+            IType::U8,
+            IType::U16,
+            IType::U32,
+            IType::U64,
+            IType::F32,
+            IType::F64,
+            IType::String,
+            IType::Anyref,
+            IType::I32,
+            IType::I64,
+            IType::Record(RecordType {
+                fields: vec1![IType::String],
             }),
         ];
 
         assert_eq!(inputs.len(), outputs.len());
 
         for (input, output) in inputs.iter().zip(outputs.iter()) {
-            assert_eq!(
-                &parser::parse::<InterfaceType>(&buffer(input)).unwrap(),
-                output
-            );
+            assert_eq!(&parser::parse::<IType>(&buffer(input)).unwrap(), output);
         }
     }
 
@@ -817,18 +825,18 @@ mod tests {
         ];
         let outputs = vec![
             RecordType {
-                fields: vec1![InterfaceType::String],
+                fields: vec1![IType::String],
             },
             RecordType {
-                fields: vec1![InterfaceType::String, InterfaceType::I32],
+                fields: vec1![IType::String, IType::I32],
             },
             RecordType {
                 fields: vec1![
-                    InterfaceType::String,
-                    InterfaceType::Record(RecordType {
-                        fields: vec1![InterfaceType::I32, InterfaceType::I32],
+                    IType::String,
+                    IType::Record(RecordType {
+                        fields: vec1![IType::I32, IType::I32],
                     }),
-                    InterfaceType::F64,
+                    IType::F64,
                 ],
             },
         ];
@@ -951,7 +959,7 @@ mod tests {
     #[test]
     fn test_param() {
         let input = buffer("(param i32 string)");
-        let output = FunctionType::InputTypes(vec![InterfaceType::I32, InterfaceType::String]);
+        let output = FunctionType::InputTypes(vec![IType::I32, IType::String]);
 
         assert_eq!(parser::parse::<FunctionType>(&input).unwrap(), output);
     }
@@ -967,7 +975,7 @@ mod tests {
     #[test]
     fn test_result() {
         let input = buffer("(result i32 string)");
-        let output = FunctionType::Output(vec![InterfaceType::I32, InterfaceType::String]);
+        let output = FunctionType::Output(vec![IType::I32, IType::String]);
 
         assert_eq!(parser::parse::<FunctionType>(&input).unwrap(), output);
     }
@@ -976,8 +984,8 @@ mod tests {
     fn test_type_function() {
         let input = buffer(r#"(@interface type (func (param i32 i32) (result i32)))"#);
         let output = Interface::Type(Type::Function {
-            inputs: vec![InterfaceType::I32, InterfaceType::I32],
-            outputs: vec![InterfaceType::I32],
+            inputs: vec![IType::I32, IType::I32],
+            outputs: vec![IType::I32],
         });
 
         assert_eq!(parser::parse::<Interface>(&input).unwrap(), output);
@@ -987,7 +995,7 @@ mod tests {
     fn test_type_record() {
         let input = buffer(r#"(@interface type (record (field string) (field i32)))"#);
         let output = Interface::Type(Type::Record(RecordType {
-            fields: vec1![InterfaceType::String, InterfaceType::I32],
+            fields: vec1![IType::String, IType::I32],
         }));
 
         assert_eq!(parser::parse::<Interface>(&input).unwrap(), output);
@@ -1064,8 +1072,8 @@ mod tests {
         );
         let output = Interfaces {
             types: vec![Type::Function {
-                inputs: vec![InterfaceType::I32],
-                outputs: vec![InterfaceType::S8],
+                inputs: vec![IType::I32],
+                outputs: vec![IType::S8],
             }],
             imports: vec![Import {
                 namespace: "ns",

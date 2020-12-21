@@ -55,50 +55,55 @@
 //! assert_eq!(input, output);
 //! ```
 
+use crate::IType;
+use crate::ITypeImpl;
+use crate::RecordTypeImpl;
 use crate::{ast::*, interpreter::Instruction, types::*};
 use std::string::ToString;
 
 /// Encode an `InterfaceType` into a string.
-impl ToString for &InterfaceType {
+impl ToString for &ITypeImpl {
     fn to_string(&self) -> String {
-        match self {
-            InterfaceType::S8 => "s8".to_string(),
-            InterfaceType::S16 => "s16".to_string(),
-            InterfaceType::S32 => "s32".to_string(),
-            InterfaceType::S64 => "s64".to_string(),
-            InterfaceType::U8 => "u8".to_string(),
-            InterfaceType::U16 => "u16".to_string(),
-            InterfaceType::U32 => "u32".to_string(),
-            InterfaceType::U64 => "u64".to_string(),
-            InterfaceType::F32 => "f32".to_string(),
-            InterfaceType::F64 => "f64".to_string(),
-            InterfaceType::String => "string".to_string(),
-            InterfaceType::Array(ty) => format!("array ({})", ty.as_ref().to_string()),
-            InterfaceType::Anyref => "anyref".to_string(),
-            InterfaceType::I32 => "i32".to_string(),
-            InterfaceType::I64 => "i64".to_string(),
-            InterfaceType::Record(record_type_id) => format!("record {}", record_type_id),
+        match &self.0 {
+            IType::S8 => "s8".to_string(),
+            IType::S16 => "s16".to_string(),
+            IType::S32 => "s32".to_string(),
+            IType::S64 => "s64".to_string(),
+            IType::U8 => "u8".to_string(),
+            IType::U16 => "u16".to_string(),
+            IType::U32 => "u32".to_string(),
+            IType::U64 => "u64".to_string(),
+            IType::F32 => "f32".to_string(),
+            IType::F64 => "f64".to_string(),
+            IType::String => "string".to_string(),
+            IType::Array(ty) => format!("array ({})", ty.as_ref().to_string()),
+            IType::Anyref => "anyref".to_string(),
+            IType::I32 => "i32".to_string(),
+            IType::I64 => "i64".to_string(),
+            IType::Record(record_type_id) => format!("record {}", record_type_id),
         }
     }
 }
 
-impl ToString for &RecordType {
+impl ToString for &RecordTypeImpl {
     fn to_string(&self) -> String {
+        let record_type = &self.0;
         format!(
             "record ${} (\n{fields})",
-            self.name,
-            fields = self
-                .fields
-                .iter()
-                .fold(String::new(), |mut accumulator, field_type| {
-                    accumulator.push(' ');
-                    accumulator.push_str(&format!(
-                        "field ${}: {}\n",
-                        field_type.name,
-                        (&field_type.ty).to_string()
-                    ));
-                    accumulator
-                }),
+            record_type.name,
+            fields =
+                record_type
+                    .fields
+                    .iter()
+                    .fold(String::new(), |mut accumulator, field_type| {
+                        accumulator.push(' ');
+                        accumulator.push_str(&format!(
+                            "field ${}: {}\n",
+                            field_type.name,
+                            (&field_type.ty).to_string()
+                        ));
+                        accumulator
+                    }),
         )
     }
 }
@@ -192,7 +197,7 @@ fn encode_function_arguments(arguments: &[FunctionArg]) -> String {
 
 /// Encode a list of `InterfaceType` representing outputs into a
 /// string.
-fn output_types_to_result(output_types: &[InterfaceType]) -> String {
+fn output_types_to_result(output_types: &[IType]) -> String {
     if output_types.is_empty() {
         "".into()
     } else {

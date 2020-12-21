@@ -455,7 +455,7 @@ where
                 Some(InterfaceValue::Record(record_values))
                     if record_type == &(&*record_values).into() =>
                 {
-                    let values = FlattenInterfaceValueIterator::new(&record_values);
+                    let values = FlattenIValueIterator::new(&record_values);
                     for value in values {
                         runtime.stack.push(value.clone());
                     }

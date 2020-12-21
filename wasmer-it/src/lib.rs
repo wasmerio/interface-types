@@ -53,8 +53,7 @@
 #![doc(html_favicon_url = "https://wasmer.io/static/icons/favicon.ico")]
 #![doc(html_logo_url = "https://github.com/wasmerio.png")]
 
-pub mod ast;
-pub mod types;
+mod ast;
 #[macro_use]
 mod macros;
 pub mod decoders;
@@ -63,5 +62,15 @@ pub mod errors;
 pub mod interpreter;
 #[cfg(feature = "serde")]
 mod serde;
-pub mod values;
-pub mod vec1;
+mod values;
+
+pub use fluence_it_types::vec1::Vec1;
+pub use fluence_it_types::IRecordFieldType;
+pub use fluence_it_types::IRecordType;
+pub use fluence_it_types::IType;
+pub use fluence_it_types::IValue;
+
+pub(crate) struct ITypeImpl(pub IType);
+pub(crate) struct RecordTypeImpl(pub IRecordType);
+pub(crate) struct RecordFieldTypeImpl(pub IRecordFieldType);
+pub(crate) struct IValueImpl(pub IValue);
