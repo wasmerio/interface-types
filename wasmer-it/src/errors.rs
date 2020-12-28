@@ -1,8 +1,9 @@
 //! The error module contains all the data structures that represent
 //! an error.
 
-use crate::values::InterfaceValue;
-use crate::{ast::TypeKind, interpreter::Instruction, types::InterfaceType};
+use crate::IType;
+use crate::IValue;
+use crate::{ast::TypeKind, interpreter::Instruction};
 use std::{
     error::Error,
     fmt::{self, Display, Formatter},
@@ -11,33 +12,13 @@ use std::{
     string::{self, ToString},
 };
 
+pub use fluence_it_types::WasmValueNativeCastError;
+
 /// A type alias for instruction's results.
 pub type InstructionResult<T> = Result<T, InstructionError>;
 
 /// A type alias for the interpreter result.
 pub type InterpreterResult<T> = Result<T, InstructionError>;
-
-/// Structure to represent errors when casting from an `InterfaceType`
-/// to a native value.
-#[derive(Debug)]
-pub struct WasmValueNativeCastError {
-    /// The initial type.
-    pub from: InterfaceValue,
-
-    /// The targeted type.
-    ///
-    /// `InterfaceType` is used to represent the native type by
-    /// associativity.
-    pub to: InterfaceType,
-}
-
-impl Error for WasmValueNativeCastError {}
-
-impl Display for WasmValueNativeCastError {
-    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        write!(formatter, "{:?}", self)
-    }
-}
 
 /// Structure to represent the errors for instructions.
 #[derive(Debug)]
@@ -86,20 +67,20 @@ pub enum InstructionErrorKind {
     /// Failed to cast from `from` to `to`.
     LoweringLifting {
         /// The initial type.
-        from: InterfaceType,
+        from: IType,
 
         /// The targeted type.
-        to: InterfaceType,
+        to: IType,
     },
 
     /// Read a value from the stack, but it doesn't have the expected
     /// type.
     InvalidValueOnTheStack {
         /// The expected type.
-        expected_type: InterfaceType,
+        expected_type: IType,
 
         /// The received type.
-        received_value: InterfaceValue,
+        received_value: IValue,
     },
 
     /// Need to read some values from the stack, but it doesn't
@@ -122,10 +103,10 @@ pub enum InstructionErrorKind {
         function_index: u32,
 
         /// The expected signature.
-        expected: (Vec<InterfaceType>, Vec<InterfaceType>),
+        expected: (Vec<IType>, Vec<IType>),
 
         /// The received signature.
-        received: (Vec<InterfaceType>, Vec<InterfaceType>),
+        received: (Vec<IType>, Vec<IType>),
     },
 
     /// Failed to call a local or import function.

@@ -4,6 +4,13 @@ version = "0.1.0"
 description = "Definitions of IValue and IType"
 authors = ["Fluence Labs"]
 edition = "2018"
+license = "Apache-2.0"
 
 [dependencies]
 serde = { version = "1.0.118", features = ["derive", "rc"]}
+
+nom = { version = "5.1", optional = true }
+wast = { version = "8.0", optional = true }
+
+[features]
+impls = ["nom", "wast"]

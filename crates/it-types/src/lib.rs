@@ -1,11 +1,20 @@
+#[cfg(feature = "impls")]
+mod impls;
+pub mod ne_vec;
 mod types;
 mod values;
-pub mod vec1;
 
 // types
-pub use types::InterfaceType as IType;
+pub use types::IType;
 pub use types::RecordFieldType as IRecordFieldType;
 pub use types::RecordType as IRecordType;
 
+#[cfg(feature = "impls")]
+pub use impls::NativeType;
+
 // values
-pub use values::InterfaceValue as IValue;
+pub use values::IValue;
+
+// errors
+#[cfg(feature = "impls")]
+pub use impls::WasmValueNativeCastError;

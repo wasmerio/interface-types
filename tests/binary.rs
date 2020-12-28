@@ -13,11 +13,11 @@ fn test_binary_encoding_decoding_roundtrip() {
                 outputs: vec![],
             },
             Type::Function {
-                inputs: vec![InterfaceType::I32, InterfaceType::I32],
-                outputs: vec![InterfaceType::S32],
+                inputs: vec![IType::I32, IType::I32],
+                outputs: vec![IType::S32],
             },
             Type::Record(RecordType {
-                fields: vec1![InterfaceType::String, InterfaceType::I32],
+                fields: vec1![IType::String, IType::I32],
             }),
         ],
         imports: vec![Import {

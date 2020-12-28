@@ -8,26 +8,28 @@ mod strings;
 mod swap2;
 mod utils;
 
-use crate::interpreter::wasm;
-use crate::types::InterfaceType;
-use crate::vec1::Vec1;
-use crate::{
-    errors::{InstructionError, InstructionErrorKind, InstructionResult, WasmValueNativeCastError},
-    values::{InterfaceValue, NativeType},
+use crate::errors::{
+    InstructionError, InstructionErrorKind, InstructionResult, WasmValueNativeCastError,
 };
+use crate::interpreter::wasm;
+use crate::IType;
+use crate::IValue;
+use crate::NEVec;
 pub(crate) use argument_get::argument_get;
 pub(crate) use arrays::*;
 pub(crate) use call_core::call_core;
 pub(crate) use dup::dup;
 pub(crate) use numbers::*;
 pub(crate) use records::*;
-use std::convert::TryFrom;
 pub(crate) use strings::*;
 pub(crate) use swap2::swap2;
 pub(self) use utils::*;
 
+use fluence_it_types::NativeType;
 use serde::Deserialize;
 use serde::Serialize;
+
+use std::convert::TryFrom;
 
 pub(self) const ALLOCATE_FUNC_INDEX: u32 = 0;
 pub(self) const DEALLOCATE_FUNC_INDEX: u32 = 1;
@@ -155,13 +157,13 @@ pub enum Instruction {
     /// The `array.lift_memory` instruction.
     ArrayLiftMemory {
         /// Array value type.
-        value_type: InterfaceType,
+        value_type: IType,
     },
 
     /// The `array.lower_memory` instruction.
     ArrayLowerMemory {
         /// Array value type.
-        value_type: InterfaceType,
+        value_type: IType,
     },
 
     /*
@@ -198,13 +200,13 @@ pub enum Instruction {
 }
 
 /// Just a short helper to map the error of a cast from an
-/// `InterfaceValue` to a native value.
+/// `IValue` to a native value.
 pub(crate) fn to_native<'a, T>(
-    wit_value: &'a InterfaceValue,
+    wit_value: &'a IValue,
     instruction: Instruction,
 ) -> InstructionResult<T>
 where
-    T: NativeType + TryFrom<&'a InterfaceValue, Error = WasmValueNativeCastError>,
+    T: NativeType + TryFrom<&'a IValue, Error = WasmValueNativeCastError>,
 {
     T::try_from(wit_value)
         .map_err(|error| InstructionError::new(instruction, InstructionErrorKind::ToNative(error)))
@@ -220,7 +222,7 @@ pub(crate) fn check_function_signature<
 >(
     instance: &'instance Instance,
     local_import: &LocalImport,
-    values: &[InterfaceValue],
+    values: &[IValue],
     instruction: Instruction,
 ) -> Result<(), InstructionError>
 where
@@ -249,8 +251,8 @@ pub(crate) fn is_value_compatible_to_type<
     MemoryView,
 >(
     instance: &'instance Instance,
-    interface_type: &InterfaceType,
-    interface_value: &InterfaceValue,
+    interface_type: &IType,
+    interface_value: &IValue,
     instruction: Instruction,
 ) -> Result<(), InstructionError>
 where
@@ -261,27 +263,27 @@ where
     Instance: wasm::structures::Instance<Export, LocalImport, Memory, MemoryView>,
 {
     match (&interface_type, interface_value) {
-        (InterfaceType::S8, InterfaceValue::S8(_)) => Ok(()),
-        (InterfaceType::S16, InterfaceValue::S16(_)) => Ok(()),
-        (InterfaceType::S32, InterfaceValue::S32(_)) => Ok(()),
-        (InterfaceType::S64, InterfaceValue::S64(_)) => Ok(()),
-        (InterfaceType::U8, InterfaceValue::U8(_)) => Ok(()),
-        (InterfaceType::U16, InterfaceValue::U16(_)) => Ok(()),
-        (InterfaceType::U32, InterfaceValue::U32(_)) => Ok(()),
-        (InterfaceType::U64, InterfaceValue::U64(_)) => Ok(()),
-        (InterfaceType::I32, InterfaceValue::I32(_)) => Ok(()),
-        (InterfaceType::I64, InterfaceValue::I64(_)) => Ok(()),
-        (InterfaceType::F32, InterfaceValue::F32(_)) => Ok(()),
-        (InterfaceType::F64, InterfaceValue::F64(_)) => Ok(()),
-        (InterfaceType::String, InterfaceValue::String(_)) => Ok(()),
-        (InterfaceType::Array(ty), InterfaceValue::Array(values)) => {
+        (IType::S8, IValue::S8(_)) => Ok(()),
+        (IType::S16, IValue::S16(_)) => Ok(()),
+        (IType::S32, IValue::S32(_)) => Ok(()),
+        (IType::S64, IValue::S64(_)) => Ok(()),
+        (IType::U8, IValue::U8(_)) => Ok(()),
+        (IType::U16, IValue::U16(_)) => Ok(()),
+        (IType::U32, IValue::U32(_)) => Ok(()),
+        (IType::U64, IValue::U64(_)) => Ok(()),
+        (IType::I32, IValue::I32(_)) => Ok(()),
+        (IType::I64, IValue::I64(_)) => Ok(()),
+        (IType::F32, IValue::F32(_)) => Ok(()),
+        (IType::F64, IValue::F64(_)) => Ok(()),
+        (IType::String, IValue::String(_)) => Ok(()),
+        (IType::Array(ty), IValue::Array(values)) => {
             for value in values {
                 is_value_compatible_to_type(instance, ty, value, instruction.clone())?
             }
 
             Ok(())
         }
-        (InterfaceType::Record(ref record_type_id), InterfaceValue::Record(record_fields)) => {
+        (IType::Record(ref record_type_id), IValue::Record(record_fields)) => {
             is_record_fields_compatible_to_type(
                 instance,
                 *record_type_id,
@@ -311,7 +313,7 @@ pub(crate) fn is_record_fields_compatible_to_type<
 >(
     instance: &'instance Instance,
     record_type_id: u64,
-    record_fields: &[InterfaceValue],
+    record_fields: &[IValue],
     instruction: Instruction,
 ) -> Result<(), InstructionError>
 where
@@ -332,9 +334,9 @@ where
         return Err(InstructionError::new(
             instruction.clone(),
             InstructionErrorKind::InvalidValueOnTheStack {
-                expected_type: InterfaceType::Record(record_type_id),
+                expected_type: IType::Record(record_type_id),
                 // unwrap is safe here - len's been already checked
-                received_value: InterfaceValue::Record(Vec1::new(record_fields.to_vec()).unwrap()),
+                received_value: IValue::Record(NEVec::new(record_fields.to_vec()).unwrap()),
             },
         ));
     }
@@ -359,9 +361,9 @@ pub(crate) mod tests {
     use std::{cell::Cell, collections::HashMap, convert::TryInto, ops::Deref, rc::Rc};
 
     pub(crate) struct Export {
-        pub(crate) inputs: Vec<InterfaceType>,
-        pub(crate) outputs: Vec<InterfaceType>,
-        pub(crate) function: fn(arguments: &[InterfaceValue]) -> Result<Vec<InterfaceValue>, ()>,
+        pub(crate) inputs: Vec<IType>,
+        pub(crate) outputs: Vec<IType>,
+        pub(crate) function: fn(arguments: &[IValue]) -> Result<Vec<IValue>, ()>,
     }
 
     impl wasm::structures::Export for Export {
@@ -373,23 +375,23 @@ pub(crate) mod tests {
             self.outputs.len()
         }
 
-        fn arguments(&self) -> &[InterfaceType] {
+        fn arguments(&self) -> &[IType] {
             &self.inputs
         }
 
-        fn outputs(&self) -> &[InterfaceType] {
+        fn outputs(&self) -> &[IType] {
             &self.outputs
         }
 
-        fn call(&self, arguments: &[InterfaceValue]) -> Result<Vec<InterfaceValue>, ()> {
+        fn call(&self, arguments: &[IValue]) -> Result<Vec<IValue>, ()> {
             (self.function)(arguments)
         }
     }
 
     pub(crate) struct LocalImport {
-        pub(crate) inputs: Vec<InterfaceType>,
-        pub(crate) outputs: Vec<InterfaceType>,
-        pub(crate) function: fn(arguments: &[InterfaceValue]) -> Result<Vec<InterfaceValue>, ()>,
+        pub(crate) inputs: Vec<IType>,
+        pub(crate) outputs: Vec<IType>,
+        pub(crate) function: fn(arguments: &[IValue]) -> Result<Vec<IValue>, ()>,
     }
 
     impl wasm::structures::LocalImport for LocalImport {
@@ -401,15 +403,15 @@ pub(crate) mod tests {
             self.outputs.len()
         }
 
-        fn arguments(&self) -> &[InterfaceType] {
+        fn arguments(&self) -> &[IType] {
             &self.inputs
         }
 
-        fn outputs(&self) -> &[InterfaceType] {
+        fn outputs(&self) -> &[IType] {
             &self.outputs
         }
 
-        fn call(&self, arguments: &[InterfaceValue]) -> Result<Vec<InterfaceValue>, ()> {
+        fn call(&self, arguments: &[IValue]) -> Result<Vec<IValue>, ()> {
             (self.function)(arguments)
         }
     }
@@ -462,13 +464,13 @@ pub(crate) mod tests {
                     hashmap.insert(
                         "sum".into(),
                         Export {
-                            inputs: vec![InterfaceType::I32, InterfaceType::I32],
-                            outputs: vec![InterfaceType::I32],
-                            function: |arguments: &[InterfaceValue]| {
+                            inputs: vec![IType::I32, IType::I32],
+                            outputs: vec![IType::I32],
+                            function: |arguments: &[IValue]| {
                                 let a: i32 = (&arguments[0]).try_into().unwrap();
                                 let b: i32 = (&arguments[1]).try_into().unwrap();
 
-                                Ok(vec![InterfaceValue::I32(a + b)])
+                                Ok(vec![IValue::I32(a + b)])
                             },
                         },
                     );
@@ -481,13 +483,13 @@ pub(crate) mod tests {
                     hashmap.insert(
                         42,
                         LocalImport {
-                            inputs: vec![InterfaceType::I32, InterfaceType::I32],
-                            outputs: vec![InterfaceType::I32],
-                            function: |arguments: &[InterfaceValue]| {
+                            inputs: vec![IType::I32, IType::I32],
+                            outputs: vec![IType::I32],
+                            function: |arguments: &[IValue]| {
                                 let a: i32 = (&arguments[0]).try_into().unwrap();
                                 let b: i32 = (&arguments[1]).try_into().unwrap();
 
-                                Ok(vec![InterfaceValue::I32(a * b)])
+                                Ok(vec![IValue::I32(a * b)])
                             },
                         },
                     );
@@ -495,12 +497,12 @@ pub(crate) mod tests {
                     hashmap.insert(
                         43,
                         LocalImport {
-                            inputs: vec![InterfaceType::I32],
-                            outputs: vec![InterfaceType::I32],
-                            function: |arguments: &[InterfaceValue]| {
+                            inputs: vec![IType::I32],
+                            outputs: vec![IType::I32],
+                            function: |arguments: &[IValue]| {
                                 let _size: i32 = (&arguments[0]).try_into().unwrap();
 
-                                Ok(vec![InterfaceValue::I32(0)])
+                                Ok(vec![IValue::I32(0)])
                             },
                         },
                     );
@@ -513,27 +515,27 @@ pub(crate) mod tests {
                     fields: vec1![
                         RecordFieldType {
                             name: String::from("field_0"),
-                            ty: InterfaceType::I32,
+                            ty: IType::I32,
                         },
                         RecordFieldType {
                             name: String::from("field_1"),
-                            ty: InterfaceType::Record(RecordType {
+                            ty: IType::Record(RecordType {
                                 name: String::from("RecordType1"),
                                 fields: vec1![
                                     RecordFieldType {
                                         name: String::from("field_0"),
-                                        ty: InterfaceType::String,
+                                        ty: IType::String,
                                     },
                                     RecordFieldType {
                                         name: String::from("field1"),
-                                        ty: InterfaceType::F32
+                                        ty: IType::F32
                                     }
                                 ],
                             }),
                         },
                         RecordFieldType {
                             name: String::from("field_2"),
-                            ty: InterfaceType::I64,
+                            ty: IType::I64,
                         }
                     ],
                 })],

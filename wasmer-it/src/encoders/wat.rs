@@ -7,13 +7,13 @@
 //!     ast::{Adapter, Export, Implementation, Import, Interfaces, Type},
 //!     encoders::wat::*,
 //!     interpreter::Instruction,
-//!     types::InterfaceType,
+//!     types::IType,
 //! };
 //!
 //! let input: String = (&Interfaces {
 //!     types: vec![Type::Function {
-//!         inputs: vec![InterfaceType::I32],
-//!         outputs: vec![InterfaceType::S8],
+//!         inputs: vec![IType::I32],
+//!         outputs: vec![IType::S8],
 //!     }],
 //!     imports: vec![Import {
 //!         namespace: "ns",
@@ -56,57 +56,8 @@
 //! ```
 
 use crate::IType;
-use crate::ITypeImpl;
-use crate::RecordTypeImpl;
-use crate::{ast::*, interpreter::Instruction, types::*};
+use crate::{ast::*, interpreter::Instruction};
 use std::string::ToString;
-
-/// Encode an `InterfaceType` into a string.
-impl ToString for &ITypeImpl {
-    fn to_string(&self) -> String {
-        match &self.0 {
-            IType::S8 => "s8".to_string(),
-            IType::S16 => "s16".to_string(),
-            IType::S32 => "s32".to_string(),
-            IType::S64 => "s64".to_string(),
-            IType::U8 => "u8".to_string(),
-            IType::U16 => "u16".to_string(),
-            IType::U32 => "u32".to_string(),
-            IType::U64 => "u64".to_string(),
-            IType::F32 => "f32".to_string(),
-            IType::F64 => "f64".to_string(),
-            IType::String => "string".to_string(),
-            IType::Array(ty) => format!("array ({})", ty.as_ref().to_string()),
-            IType::Anyref => "anyref".to_string(),
-            IType::I32 => "i32".to_string(),
-            IType::I64 => "i64".to_string(),
-            IType::Record(record_type_id) => format!("record {}", record_type_id),
-        }
-    }
-}
-
-impl ToString for &RecordTypeImpl {
-    fn to_string(&self) -> String {
-        let record_type = &self.0;
-        format!(
-            "record ${} (\n{fields})",
-            record_type.name,
-            fields =
-                record_type
-                    .fields
-                    .iter()
-                    .fold(String::new(), |mut accumulator, field_type| {
-                        accumulator.push(' ');
-                        accumulator.push_str(&format!(
-                            "field ${}: {}\n",
-                            field_type.name,
-                            (&field_type.ty).to_string()
-                        ));
-                        accumulator
-                    }),
-        )
-    }
-}
 
 /// Encode an `Instruction` into a string.
 impl ToString for &Instruction {
@@ -172,7 +123,7 @@ impl ToString for &Instruction {
     }
 }
 
-/// Encode a list of `InterfaceType` representing inputs into a
+/// Encode a list of `IType` representing inputs into a
 /// string.
 fn encode_function_arguments(arguments: &[FunctionArg]) -> String {
     // here we know that arg_names and arg_types have the same length
@@ -195,7 +146,7 @@ fn encode_function_arguments(arguments: &[FunctionArg]) -> String {
     }
 }
 
-/// Encode a list of `InterfaceType` representing outputs into a
+/// Encode a list of `IType` representing outputs into a
 /// string.
 fn output_types_to_result(output_types: &[IType]) -> String {
     if output_types.is_empty() {
@@ -389,22 +340,22 @@ mod tests {
     #[test]
     fn test_interface_types() {
         let inputs: Vec<String> = vec![
-            (&InterfaceType::S8).to_string(),
-            (&InterfaceType::S16).to_string(),
-            (&InterfaceType::S32).to_string(),
-            (&InterfaceType::S64).to_string(),
-            (&InterfaceType::U8).to_string(),
-            (&InterfaceType::U16).to_string(),
-            (&InterfaceType::U32).to_string(),
-            (&InterfaceType::U64).to_string(),
-            (&InterfaceType::F32).to_string(),
-            (&InterfaceType::F64).to_string(),
-            (&InterfaceType::String).to_string(),
-            (&InterfaceType::Anyref).to_string(),
-            (&InterfaceType::I32).to_string(),
-            (&InterfaceType::I64).to_string(),
-            (&InterfaceType::Record(RecordType {
-                fields: vec1![InterfaceType::String],
+            (&IType::S8).to_string(),
+            (&IType::S16).to_string(),
+            (&IType::S32).to_string(),
+            (&IType::S64).to_string(),
+            (&IType::U8).to_string(),
+            (&IType::U16).to_string(),
+            (&IType::U32).to_string(),
+            (&IType::U64).to_string(),
+            (&IType::F32).to_string(),
+            (&IType::F64).to_string(),
+            (&IType::String).to_string(),
+            (&IType::Anyref).to_string(),
+            (&IType::I32).to_string(),
+            (&IType::I64).to_string(),
+            (&IType::Record(RecordType {
+                fields: vec1![IType::String],
             }))
                 .to_string(),
         ];
@@ -433,20 +384,20 @@ mod tests {
     fn test_record_type() {
         let inputs = vec![
             (&RecordType {
-                fields: vec1![InterfaceType::String],
+                fields: vec1![IType::String],
             })
                 .to_string(),
             (&RecordType {
-                fields: vec1![InterfaceType::String, InterfaceType::I32],
+                fields: vec1![IType::String, IType::I32],
             })
                 .to_string(),
             (&RecordType {
                 fields: vec1![
-                    InterfaceType::String,
-                    InterfaceType::Record(RecordType {
-                        fields: vec1![InterfaceType::I32, InterfaceType::I32],
+                    IType::String,
+                    IType::Record(RecordType {
+                        fields: vec1![IType::I32, IType::I32],
                     }),
-                    InterfaceType::F64,
+                    IType::F64,
                 ],
             })
                 .to_string(),
@@ -554,18 +505,18 @@ mod tests {
     fn test_types() {
         let inputs: Vec<String> = vec![
             (&Type::Function {
-                inputs: vec![InterfaceType::I32, InterfaceType::F32],
-                outputs: vec![InterfaceType::I32],
+                inputs: vec![IType::I32, IType::F32],
+                outputs: vec![IType::I32],
             })
                 .to_string(),
             (&Type::Function {
-                inputs: vec![InterfaceType::I32],
+                inputs: vec![IType::I32],
                 outputs: vec![],
             })
                 .to_string(),
             (&Type::Function {
                 inputs: vec![],
-                outputs: vec![InterfaceType::I32],
+                outputs: vec![IType::I32],
             })
                 .to_string(),
             (&Type::Function {
@@ -574,7 +525,7 @@ mod tests {
             })
                 .to_string(),
             (&Type::Record(RecordType {
-                fields: vec1![InterfaceType::String, InterfaceType::I32],
+                fields: vec1![IType::String, IType::I32],
             }))
                 .to_string(),
         ];
@@ -635,8 +586,8 @@ mod tests {
     fn test_interfaces() {
         let input: String = (&Interfaces {
             types: vec![Type::Function {
-                inputs: vec![InterfaceType::I32],
-                outputs: vec![InterfaceType::S8],
+                inputs: vec![IType::I32],
+                outputs: vec![IType::S8],
             }],
             imports: vec![Import {
                 namespace: "ns",

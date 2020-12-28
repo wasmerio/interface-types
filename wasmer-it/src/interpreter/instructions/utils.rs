@@ -4,11 +4,11 @@ use crate::interpreter::wasm;
 use crate::interpreter::wasm::structures::{FunctionIndex, TypedIndex};
 
 use crate::interpreter::instructions::to_native;
+use crate::IType;
+use crate::IValue;
 use crate::{
     errors::{InstructionError, InstructionErrorKind},
     interpreter::Instruction,
-    types::InterfaceType,
-    values::InterfaceValue,
 };
 
 pub(super) fn read_from_instance_mem<'instance, Instance, Export, LocalImport, Memory, MemoryView>(
@@ -115,14 +115,14 @@ where
         instance,
         ALLOCATE_FUNC_INDEX,
         instruction.clone(),
-        vec![InterfaceValue::I32(size as _)],
+        vec![IValue::I32(size as _)],
     )?;
     if values.len() != 1 {
         return Err(InstructionError::new(
             instruction,
             InstructionErrorKind::LocalOrImportSignatureMismatch {
                 function_index: ALLOCATE_FUNC_INDEX,
-                expected: (vec![InterfaceType::I32], vec![]),
+                expected: (vec![IType::I32], vec![]),
                 received: (vec![], vec![]),
             },
         ));
@@ -147,7 +147,7 @@ where
         instance,
         DEALLOCATE_FUNC_INDEX,
         instruction,
-        vec![InterfaceValue::I32(mem_ptr), InterfaceValue::I32(size)],
+        vec![IValue::I32(mem_ptr), IValue::I32(size)],
     )?;
 
     Ok(())
@@ -157,8 +157,8 @@ fn call_core<'instance, Instance, Export, LocalImport, Memory, MemoryView>(
     instance: &'instance Instance,
     function_index: u32,
     instruction: Instruction,
-    inputs: Vec<InterfaceValue>,
-) -> Result<Vec<InterfaceValue>, InstructionError>
+    inputs: Vec<IValue>,
+) -> Result<Vec<IValue>, InstructionError>
 where
     Export: wasm::structures::Export + 'instance,
     LocalImport: wasm::structures::LocalImport + 'instance,

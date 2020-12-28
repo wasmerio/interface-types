@@ -1,10 +1,10 @@
 //! Defines WIT values and associated operations.
 
-use crate::vec1::Vec1;
+use crate::ne_vec::NEVec;
 
 /// A WIT value.
 #[derive(Debug, Clone, PartialEq)]
-pub enum InterfaceValue {
+pub enum IValue {
     /// A 8-bits signed integer.
     S8(i8),
 
@@ -39,7 +39,7 @@ pub enum InterfaceValue {
     String(String),
 
     /// A byte array.
-    Array(Vec<InterfaceValue>),
+    Array(Vec<IValue>),
 
     //Anyref(?),
     /// A 32-bits integer (as defined in WebAssembly core).
@@ -49,10 +49,10 @@ pub enum InterfaceValue {
     I64(i64),
 
     /// A record.
-    Record(Vec1<InterfaceValue>),
+    Record(NEVec<IValue>),
 }
 
-impl Default for InterfaceValue {
+impl Default for IValue {
     fn default() -> Self {
         Self::I32(0)
     }

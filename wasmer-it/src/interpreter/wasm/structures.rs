@@ -1,8 +1,9 @@
 #![allow(missing_docs)]
 
 use crate::ast::FunctionArg;
-use crate::types::RecordType;
-use crate::{types::InterfaceType, values::InterfaceValue};
+use crate::IRecordType;
+use crate::IType;
+use crate::IValue;
 use std::rc::Rc;
 use std::{cell::Cell, ops::Deref};
 
@@ -47,8 +48,8 @@ pub trait Export {
     fn inputs_cardinality(&self) -> usize;
     fn outputs_cardinality(&self) -> usize;
     fn arguments(&self) -> &[FunctionArg];
-    fn outputs(&self) -> &[InterfaceType];
-    fn call(&self, arguments: &[InterfaceValue]) -> Result<Vec<InterfaceValue>, ()>;
+    fn outputs(&self) -> &[IType];
+    fn call(&self, arguments: &[IValue]) -> Result<Vec<IValue>, ()>;
 }
 
 pub trait LocalImport {
@@ -56,8 +57,8 @@ pub trait LocalImport {
     fn inputs_cardinality(&self) -> usize;
     fn outputs_cardinality(&self) -> usize;
     fn arguments(&self) -> &[FunctionArg];
-    fn outputs(&self) -> &[InterfaceType];
-    fn call(&self, arguments: &[InterfaceValue]) -> Result<Vec<InterfaceValue>, ()>;
+    fn outputs(&self) -> &[IType];
+    fn call(&self, arguments: &[IValue]) -> Result<Vec<IValue>, ()>;
 }
 
 pub trait MemoryView: Deref<Target = [Cell<u8>]> {}
@@ -79,7 +80,7 @@ where
     fn export(&self, export_name: &str) -> Option<&E>;
     fn local_or_import<I: TypedIndex + LocalImportIndex>(&self, index: I) -> Option<&LI>;
     fn memory(&self, index: usize) -> Option<&M>;
-    fn wit_record_by_id(&self, index: u64) -> Option<&Rc<RecordType>>;
+    fn wit_record_by_id(&self, index: u64) -> Option<&Rc<IRecordType>>;
 }
 
 impl Export for () {
@@ -99,11 +100,11 @@ impl Export for () {
         &[]
     }
 
-    fn outputs(&self) -> &[InterfaceType] {
+    fn outputs(&self) -> &[IType] {
         &[]
     }
 
-    fn call(&self, _arguments: &[InterfaceValue]) -> Result<Vec<InterfaceValue>, ()> {
+    fn call(&self, _arguments: &[IValue]) -> Result<Vec<IValue>, ()> {
         Err(())
     }
 }
@@ -125,11 +126,11 @@ impl LocalImport for () {
         &[]
     }
 
-    fn outputs(&self) -> &[InterfaceType] {
+    fn outputs(&self) -> &[IType] {
         &[]
     }
 
-    fn call(&self, _arguments: &[InterfaceValue]) -> Result<Vec<InterfaceValue>, ()> {
+    fn call(&self, _arguments: &[IValue]) -> Result<Vec<IValue>, ()> {
         Err(())
     }
 }
@@ -171,7 +172,7 @@ where
         None
     }
 
-    fn wit_record_by_id(&self, _index: u64) -> Option<&Rc<RecordType>> {
+    fn wit_record_by_id(&self, _index: u64) -> Option<&Rc<IRecordType>> {
         None
     }
 }

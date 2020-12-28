@@ -1,9 +1,9 @@
 //! Parse the WIT binary representation into an [AST](crate::ast).
 
+use crate::IRecordFieldType;
+use crate::IRecordType;
 use crate::IType;
-use crate::RecordFieldType;
-use crate::RecordType;
-use crate::{ast::*, interpreter::Instruction, types::*};
+use crate::{ast::*, interpreter::Instruction};
 use nom::{
     error::{make_error, ErrorKind, ParseError},
     Err, IResult,
@@ -76,7 +76,7 @@ fn uleb<'input, E: ParseError<&'input [u8]>>(input: &'input [u8]) -> IResult<&'i
 
 fn record_field<'input, E: ParseError<&'input [u8]>>(
     mut input: &'input [u8],
-) -> IResult<&'input [u8], RecordFieldType, E> {
+) -> IResult<&'input [u8], IRecordFieldType, E> {
     if input.is_empty() {
         return Err(Err::Error(make_error(input, ErrorKind::Eof)));
     }
@@ -84,7 +84,7 @@ fn record_field<'input, E: ParseError<&'input [u8]>>(
     consume!((input, name) = owned_string(input)?);
     consume!((input, ty) = ty(input)?);
 
-    Ok((input, RecordFieldType { name, ty }))
+    Ok((input, IRecordFieldType { name, ty }))
 }
 
 fn function_arg<'input, E: ParseError<&'input [u8]>>(
@@ -144,17 +144,17 @@ fn ty<'input, E: ParseError<&'input [u8]>>(
 /// Parse a record type.
 fn record_type<'input, E: ParseError<&'input [u8]>>(
     input: &'input [u8],
-) -> IResult<&'input [u8], RecordType, E> {
-    use crate::vec1::Vec1;
+) -> IResult<&'input [u8], IRecordType, E> {
+    use crate::NEVec;
 
     let (output, name) = owned_string(input)?;
     let (output, fields) = list(output, record_field)?;
 
     Ok((
         output,
-        RecordType {
+        IRecordType {
             name,
-            fields: Vec1::new(fields).expect("Record must have at least one field, zero given."),
+            fields: NEVec::new(fields).expect("Record must have at least one field, zero given."),
         },
     ))
 }

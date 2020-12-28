@@ -64,13 +64,14 @@ pub mod interpreter;
 mod serde;
 mod values;
 
-pub use fluence_it_types::vec1::Vec1;
+pub use fluence_it_types::ne_vec::NEVec;
 pub use fluence_it_types::IRecordFieldType;
 pub use fluence_it_types::IRecordType;
 pub use fluence_it_types::IType;
 pub use fluence_it_types::IValue;
 
-pub(crate) struct ITypeImpl(pub IType);
-pub(crate) struct RecordTypeImpl(pub IRecordType);
-pub(crate) struct RecordFieldTypeImpl(pub IRecordFieldType);
-pub(crate) struct IValueImpl(pub IValue);
+#[cfg(feature = "serde")]
+pub use crate::serde::de::from_interface_values;
+
+#[cfg(feature = "serde")]
+pub use crate::serde::ser::to_interface_value;

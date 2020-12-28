@@ -2,18 +2,19 @@ use super::read_from_instance_mem;
 use super::write_to_instance_mem;
 
 use crate::interpreter::instructions::{is_record_fields_compatible_to_type, to_native};
+use crate::IRecordType;
+use crate::IType;
+use crate::IValue;
+use crate::NEVec;
 use crate::{
     errors::{InstructionError, InstructionErrorKind},
     interpreter::Instruction,
-    types::{InterfaceType, RecordType},
-    values::InterfaceValue,
-    vec1::Vec1,
 };
 
 use std::convert::TryInto;
 
 /*
-/// Build an `InterfaceValue::Record` based on values on the stack.
+/// Build an `IValue::Record` based on values on the stack.
 ///
 /// To fill a record, every field `field_1` to `field_n` must get its
 /// value from the stack with `value_1` to `value_n`. It is not
@@ -27,14 +28,14 @@ use std::convert::TryInto;
 /// is possible to access to last positions). So a `VecDeque` type is
 /// used: it is a double-ended queue.
 fn record_lift_(
-    stack: &mut Stack<InterfaceValue>,
+    stack: &mut Stack<IValue>,
     record_type: &RecordType,
-) -> Result<InterfaceValue, InstructionErrorKind> {
+) -> Result<IValue, InstructionErrorKind> {
     let length = record_type.fields.len();
     let mut values = VecDeque::with_capacity(length);
     for field in record_type.fields.iter().rev() {
         match field {
-            InterfaceType::Record(record_type) => {
+            IType::Record(record_type) => {
                 values.push_front(record_lift_(stack, &record_type)?)
             }
             ty => {
@@ -50,8 +51,8 @@ fn record_lift_(
             }
         }
     }
-    Ok(InterfaceValue::Record(
-        Vec1::new(values.into_iter().collect())
+    Ok(IValue::Record(
+        NEVec::new(values.into_iter().collect())
             .expect("Record must have at least one field, zero given"),
     ))
 }
@@ -101,10 +102,10 @@ where
 
 pub(super) fn record_lift_memory_<'instance, Instance, Export, LocalImport, Memory, MemoryView>(
     instance: &'instance Instance,
-    record_type: &RecordType,
+    record_type: &IRecordType,
     offset: usize,
     instruction: Instruction,
-) -> Result<InterfaceValue, InstructionError>
+) -> Result<IValue, InstructionError>
 where
     Export: crate::interpreter::wasm::structures::Export,
     LocalImport: crate::interpreter::wasm::structures::LocalImport,
@@ -113,12 +114,12 @@ where
     Instance: crate::interpreter::wasm::structures::Instance<Export, LocalImport, Memory, MemoryView>
         + 'instance,
 {
-    fn record_size(record_type: &RecordType) -> usize {
+    fn record_size(record_type: &IRecordType) -> usize {
         let mut record_size = 0;
 
         for field_type in record_type.fields.iter() {
             let params_count = match field_type.ty {
-                InterfaceType::String | InterfaceType::Array(_) => 2,
+                IType::String | IType::Array(_) => 2,
                 _ => 1,
             };
 
@@ -140,42 +141,42 @@ where
     for field in (*record_type.fields).iter() {
         let value = data[field_id];
         match &field.ty {
-            InterfaceType::S8 => {
-                values.push(InterfaceValue::S8(value as _));
+            IType::S8 => {
+                values.push(IValue::S8(value as _));
             }
-            InterfaceType::S16 => {
-                values.push(InterfaceValue::S16(value as _));
+            IType::S16 => {
+                values.push(IValue::S16(value as _));
             }
-            InterfaceType::S32 => {
-                values.push(InterfaceValue::S32(value as _));
+            IType::S32 => {
+                values.push(IValue::S32(value as _));
             }
-            InterfaceType::S64 => {
-                values.push(InterfaceValue::S64(value as _));
+            IType::S64 => {
+                values.push(IValue::S64(value as _));
             }
-            InterfaceType::I32 => {
-                values.push(InterfaceValue::I32(value as _));
+            IType::I32 => {
+                values.push(IValue::I32(value as _));
             }
-            InterfaceType::I64 => {
-                values.push(InterfaceValue::I64(value as _));
+            IType::I64 => {
+                values.push(IValue::I64(value as _));
             }
-            InterfaceType::U8 => {
-                values.push(InterfaceValue::U8(value as _));
+            IType::U8 => {
+                values.push(IValue::U8(value as _));
             }
-            InterfaceType::U16 => {
-                values.push(InterfaceValue::U16(value as _));
+            IType::U16 => {
+                values.push(IValue::U16(value as _));
             }
-            InterfaceType::U32 => {
-                values.push(InterfaceValue::U32(value as _));
+            IType::U32 => {
+                values.push(IValue::U32(value as _));
             }
-            InterfaceType::U64 => {
-                values.push(InterfaceValue::U64(value as _));
+            IType::U64 => {
+                values.push(IValue::U64(value as _));
             }
-            InterfaceType::F32 => {
-                values.push(InterfaceValue::F32(value as _));
+            IType::F32 => {
+                values.push(IValue::F32(value as _));
             }
-            InterfaceType::F64 => values.push(InterfaceValue::F64(f64::from_bits(value))),
-            InterfaceType::Anyref => {}
-            InterfaceType::String => {
+            IType::F64 => values.push(IValue::F64(f64::from_bits(value))),
+            IType::Anyref => {}
+            IType::String => {
                 let string_offset = value;
                 field_id += 1;
                 let string_size = data[field_id];
@@ -190,12 +191,12 @@ where
 
                     // TODO: check
                     let string = String::from_utf8(string_mem).unwrap();
-                    values.push(InterfaceValue::String(string));
+                    values.push(IValue::String(string));
                 } else {
-                    values.push(InterfaceValue::String(String::new()));
+                    values.push(IValue::String(String::new()));
                 }
             }
-            InterfaceType::Array(ty) => {
+            IType::Array(ty) => {
                 let array_offset = value;
                 field_id += 1;
                 let array_size = data[field_id];
@@ -208,12 +209,12 @@ where
                         array_size as _,
                         instruction.clone(),
                     )?;
-                    values.push(InterfaceValue::Array(array));
+                    values.push(IValue::Array(array));
                 } else {
-                    values.push(InterfaceValue::Array(vec![]));
+                    values.push(IValue::Array(vec![]));
                 }
             }
-            InterfaceType::Record(record_type_id) => {
+            IType::Record(record_type_id) => {
                 let offset = value;
 
                 let record_type = instance.wit_record_by_id(*record_type_id).ok_or_else(|| {
@@ -238,8 +239,8 @@ where
 
     super::deallocate(instance, instruction, offset as _, size as _)?;
 
-    Ok(InterfaceValue::Record(
-        Vec1::new(values.into_iter().collect())
+    Ok(IValue::Record(
+        NEVec::new(values.into_iter().collect())
             .expect("Record must have at least one field, zero given"),
     ))
 }
@@ -301,7 +302,7 @@ where
 pub(super) fn record_lower_memory_<Instance, Export, LocalImport, Memory, MemoryView>(
     instance: &mut Instance,
     instruction: Instruction,
-    values: Vec1<InterfaceValue>,
+    values: NEVec<IValue>,
 ) -> Result<i32, InstructionError>
 where
     Export: crate::interpreter::wasm::structures::Export,
@@ -315,19 +316,19 @@ where
 
     for value in values.into_vec() {
         match value {
-            InterfaceValue::S8(value) => result.push(value as _),
-            InterfaceValue::S16(value) => result.push(value as _),
-            InterfaceValue::S32(value) => result.push(value as _),
-            InterfaceValue::S64(value) => result.push(value as _),
-            InterfaceValue::U8(value) => result.push(value as _),
-            InterfaceValue::U16(value) => result.push(value as _),
-            InterfaceValue::U32(value) => result.push(value as _),
-            InterfaceValue::U64(value) => result.push(value as _),
-            InterfaceValue::I32(value) => result.push(value as _),
-            InterfaceValue::I64(value) => result.push(value as _),
-            InterfaceValue::F32(value) => result.push(value as _),
-            InterfaceValue::F64(value) => result.push(value.to_bits()),
-            InterfaceValue::String(value) => {
+            IValue::S8(value) => result.push(value as _),
+            IValue::S16(value) => result.push(value as _),
+            IValue::S32(value) => result.push(value as _),
+            IValue::S64(value) => result.push(value as _),
+            IValue::U8(value) => result.push(value as _),
+            IValue::U16(value) => result.push(value as _),
+            IValue::U32(value) => result.push(value as _),
+            IValue::U64(value) => result.push(value as _),
+            IValue::I32(value) => result.push(value as _),
+            IValue::I64(value) => result.push(value as _),
+            IValue::F32(value) => result.push(value as _),
+            IValue::F64(value) => result.push(value.to_bits()),
+            IValue::String(value) => {
                 let string_pointer = if !value.is_empty() {
                     write_to_instance_mem(instance, instruction.clone(), value.as_bytes())?
                 } else {
@@ -338,7 +339,7 @@ where
                 result.push(value.len() as _);
             }
 
-            InterfaceValue::Array(values) => {
+            IValue::Array(values) => {
                 let (offset, size) = if !values.is_empty() {
                     super::array_lower_memory_(instance, instruction.clone(), values)?
                 } else {
@@ -349,7 +350,7 @@ where
                 result.push(size as _);
             }
 
-            InterfaceValue::Record(values) => {
+            IValue::Record(values) => {
                 let record_ptr = record_lower_memory_(instance, instruction.clone(), values)?;
 
                 result.push(record_ptr as _);
@@ -382,7 +383,7 @@ where
             let instance = &mut runtime.wasm_instance;
 
             match runtime.stack.pop1() {
-                Some(InterfaceValue::Record(record_fields)) => {
+                Some(IValue::Record(record_fields)) => {
                     is_record_fields_compatible_to_type(
                         &**instance,
                         record_type_id,
@@ -396,14 +397,14 @@ where
                         record_lower_memory_(*instance, instruction.clone(), record_fields)?;
 
                     log::debug!("record.lower_memory: pushing {} on the stack", offset);
-                    runtime.stack.push(InterfaceValue::I32(offset));
+                    runtime.stack.push(IValue::I32(offset));
 
                     Ok(())
                 }
                 Some(value) => Err(InstructionError::new(
                     instruction.clone(),
                     InstructionErrorKind::InvalidValueOnTheStack {
-                        expected_type: InterfaceType::Record(record_type_id),
+                        expected_type: IType::Record(record_type_id),
                         received_value: value,
                     },
                 )),
@@ -452,7 +453,7 @@ where
                 }
             };
             match runtime.stack.pop1() {
-                Some(InterfaceValue::Record(record_values))
+                Some(IValue::Record(record_values))
                     if record_type == &(&*record_values).into() =>
                 {
                     let values = FlattenIValueIterator::new(&record_values);
@@ -464,7 +465,7 @@ where
                 Some(value) => Err(InstructionError::new(
                     instruction.clone(),
                     InstructionErrorKind::InvalidValueOnTheStack {
-                        expected_type: InterfaceType::Record(record_type.clone()),
+                        expected_type: IType::Record(record_type.clone()),
                         received_type: (&value).into(),
                     },
                 )),

@@ -29,9 +29,9 @@ mod tests {
     test_executable_instruction!(
         test_argument_get =
             instructions: [Instruction::ArgumentGet { index: 0 }],
-            invocation_inputs: [InterfaceValue::I32(42)],
+            invocation_inputs: [IValue::I32(42)],
             instance: Instance::new(),
-            stack: [InterfaceValue::I32(42)],
+            stack: [IValue::I32(42)],
     );
 
     test_executable_instruction!(
@@ -41,20 +41,20 @@ mod tests {
                 Instruction::ArgumentGet { index: 1 },
             ],
             invocation_inputs: [
-                InterfaceValue::I32(7),
-                InterfaceValue::I32(42),
+                IValue::I32(7),
+                IValue::I32(42),
             ],
             instance: Instance::new(),
             stack: [
-                InterfaceValue::I32(7),
-                InterfaceValue::I32(42),
+                IValue::I32(7),
+                IValue::I32(42),
             ],
     );
 
     test_executable_instruction!(
         test_argument_get__invalid_index =
             instructions: [Instruction::ArgumentGet { index: 1 }],
-            invocation_inputs: [InterfaceValue::I32(42)],
+            invocation_inputs: [IValue::I32(42)],
             instance: Instance::new(),
             error: "`arg.get 1` cannot access invocation inputs #1 because it doesn't exist"
     );

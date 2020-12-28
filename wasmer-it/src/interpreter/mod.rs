@@ -4,10 +4,8 @@ mod instructions;
 pub mod stack;
 pub mod wasm;
 
-use crate::{
-    errors::{InstructionResult, InterpreterResult},
-    values::InterfaceValue,
-};
+use crate::errors::{InstructionResult, InterpreterResult};
+use crate::IValue;
 pub use instructions::Instruction;
 use stack::Stack;
 use std::{convert::TryFrom, marker::PhantomData};
@@ -24,10 +22,10 @@ where
 {
     /// The invocation inputs are all the arguments received by an
     /// adapter.
-    invocation_inputs: &'invocation [InterfaceValue],
+    invocation_inputs: &'invocation [IValue],
 
     /// Each runtime (so adapter) has its own stack instance.
-    stack: Stack<InterfaceValue>,
+    stack: Stack<IValue>,
 
     /// The WebAssembly module instance. It is used by adapter's
     /// instructions.
@@ -68,8 +66,8 @@ pub(crate) type ExecutableInstruction<Instance, Export, LocalImport, Memory, Mem
 ///         stack::Stackable,
 ///         Instruction, Interpreter,
 ///     },
-///     types::InterfaceType,
-///     values::InterfaceValue,
+///     types::IType,
+///     values::IValue,
 /// };
 ///
 /// // 1. Creates an interpreter from a set of instructions. They will
@@ -83,7 +81,7 @@ pub(crate) type ExecutableInstruction<Instance, Export, LocalImport, Memory, Mem
 ///     .unwrap();
 ///
 /// // 2. Defines the arguments of the adapter.
-/// let invocation_inputs = vec![InterfaceValue::I32(3), InterfaceValue::I32(4)];
+/// let invocation_inputs = vec![IValue::I32(3), IValue::I32(4)];
 ///
 /// // 3. Creates a WebAssembly instance.
 /// let mut instance = Instance {
@@ -94,17 +92,17 @@ pub(crate) type ExecutableInstruction<Instance, Export, LocalImport, Memory, Mem
 ///             42,
 ///             LocalImport {
 ///                 // Defines the argument types of the function.
-///                 inputs: vec![InterfaceType::I32, InterfaceType::I32],
+///                 inputs: vec![IType::I32, IType::I32],
 ///
 ///                 // Defines the result types.
-///                 outputs: vec![InterfaceType::I32],
+///                 outputs: vec![IType::I32],
 ///
 ///                 // Defines the function implementation.
-///                 function: |arguments: &[InterfaceValue]| {
+///                 function: |arguments: &[IValue]| {
 ///                     let a: i32 = (&arguments[0]).try_into().unwrap();
 ///                     let b: i32 = (&arguments[1]).try_into().unwrap();
 ///
-///                     Ok(vec![InterfaceValue::I32(a + b)])
+///                     Ok(vec![IValue::I32(a + b)])
 ///                 },
 ///             },
 ///         );
@@ -120,7 +118,7 @@ pub(crate) type ExecutableInstruction<Instance, Export, LocalImport, Memory, Mem
 /// let stack = run.unwrap();
 ///
 /// // 5. Read the stack to get the result.
-/// assert_eq!(stack.as_slice(), &[InterfaceValue::I32(7)]);
+/// assert_eq!(stack.as_slice(), &[IValue::I32(7)]);
 /// ```
 pub struct Interpreter<Instance, Export, LocalImport, Memory, MemoryView>
 where
@@ -158,9 +156,9 @@ where
     ///      returns the stack.
     pub fn run(
         &self,
-        invocation_inputs: &[InterfaceValue],
+        invocation_inputs: &[IValue],
         wasm_instance: &mut Instance,
-    ) -> InterpreterResult<Stack<InterfaceValue>> {
+    ) -> InterpreterResult<Stack<IValue>> {
         let mut runtime = Runtime {
             invocation_inputs,
             stack: Stack::new(),

@@ -1,12 +1,7 @@
 //! Represents the WIT language as a tree. This is the central
 //! representation of the language.
 
-use crate::{
-    interpreter::Instruction,
-    IValue,
-    IType,
-    IRecordType
-};
+use crate::{interpreter::Instruction, IRecordType, IType};
 
 use serde::Deserialize;
 use serde::Serialize;

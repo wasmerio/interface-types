@@ -63,11 +63,11 @@ mod tests {
                 Instruction::CallCore { function_index: 42 },
             ],
             invocation_inputs: [
-                InterfaceValue::I32(3),
-                InterfaceValue::I32(4),
+                IValue::I32(3),
+                IValue::I32(4),
             ],
             instance: Instance::new(),
-            stack: [InterfaceValue::I32(12)],
+            stack: [IValue::I32(12)],
     );
 
     test_executable_instruction!(
@@ -76,8 +76,8 @@ mod tests {
                 Instruction::CallCore { function_index: 42 },
             ],
             invocation_inputs: [
-                InterfaceValue::I32(3),
-                InterfaceValue::I32(4),
+                IValue::I32(3),
+                IValue::I32(4),
             ],
             instance: Default::default(),
             error: r#"`call-core 42` the local or import function `42` doesn't exist"#,
@@ -91,8 +91,8 @@ mod tests {
                 //                                      ^^ `42` expects 2 values on the stack, only one is present
             ],
             invocation_inputs: [
-                InterfaceValue::I32(3),
-                InterfaceValue::I32(4),
+                IValue::I32(3),
+                IValue::I32(4),
             ],
             instance: Instance::new(),
             error: r#"`call-core 42` needed to read `2` value(s) from the stack, but it doesn't contain enough data"#,
@@ -106,8 +106,8 @@ mod tests {
                 Instruction::CallCore { function_index: 42 },
             ],
             invocation_inputs: [
-                InterfaceValue::I32(3),
-                InterfaceValue::I64(4),
+                IValue::I32(3),
+                IValue::I64(4),
                 //              ^^^ mismatch with `42` signature
             ],
             instance: Instance::new(),
@@ -122,8 +122,8 @@ mod tests {
                 Instruction::CallCore { function_index: 42 },
             ],
             invocation_inputs: [
-                InterfaceValue::I32(3),
-                InterfaceValue::I32(4),
+                IValue::I32(3),
+                IValue::I32(4),
             ],
             instance: Instance {
                 locals_or_imports: {
@@ -131,8 +131,8 @@ mod tests {
                     hashmap.insert(
                         42,
                         LocalImport {
-                            inputs: vec![InterfaceType::I32, InterfaceType::I32],
-                            outputs: vec![InterfaceType::I32],
+                            inputs: vec![IType::I32, IType::I32],
+                            outputs: vec![IType::I32],
                             function: |_| Err(()),
                             //            ^^^^^^^ function fails
                         },
@@ -153,8 +153,8 @@ mod tests {
                 Instruction::CallCore { function_index: 42 },
             ],
             invocation_inputs: [
-                InterfaceValue::I32(3),
-                InterfaceValue::I32(4),
+                IValue::I32(3),
+                IValue::I32(4),
             ],
             instance: Instance {
                 locals_or_imports: {
@@ -162,8 +162,8 @@ mod tests {
                     hashmap.insert(
                         42,
                         LocalImport {
-                            inputs: vec![InterfaceType::I32, InterfaceType::I32],
-                            outputs: vec![InterfaceType::I32],
+                            inputs: vec![IType::I32, IType::I32],
+                            outputs: vec![IType::I32],
                             function: |_| Ok(vec![]),
                             //            ^^^^^^^^^^ void
                         },

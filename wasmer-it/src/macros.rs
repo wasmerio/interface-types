@@ -14,13 +14,13 @@ macro_rules! vec1 {
 
     ($item:expr; $length:expr) => {
         {
-            crate::vec1::Vec1::new(vec![$item; $length]).unwrap()
+            crate::vec1::NEVec::new(vec![$item; $length]).unwrap()
         }
     };
 
     ($($item:expr),+ $(,)?) => {
         {
-            crate::vec1::Vec1::new(vec![$($item),*]).unwrap()
+            crate::vec1::NEVec::new(vec![$($item),*]).unwrap()
         }
     };
 }
@@ -104,8 +104,8 @@ macro_rules! test_executable_instruction {
                     stack::Stackable,
                     Instruction, Interpreter,
                 },
-                types::InterfaceType,
-                values::InterfaceValue,
+                types::IType,
+                values::IValue,
             };
             use std::{cell::Cell, collections::HashMap, convert::TryInto};
 
@@ -146,8 +146,8 @@ macro_rules! test_executable_instruction {
                     stack::Stackable,
                     Instruction, Interpreter,
                 },
-                types::InterfaceType,
-                values::InterfaceValue,
+                types::IType,
+                values::IValue,
             };
             use std::{cell::Cell, collections::HashMap, convert::TryInto};
 

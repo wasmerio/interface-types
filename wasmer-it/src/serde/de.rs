@@ -33,9 +33,9 @@ use std::{
 ///     y: f32,
 /// };
 ///
-/// let values = vec![IValue::Record(Vec1::new(vec![
+/// let values = vec![IValue::Record(NEVec::new(vec![
 ///     IValue::String("abc".to_string()),
-///     IValue::Record(Vec1::new(vec![IValue::I32(1), IValue::I64(2)]).unwrap()),
+///     IValue::Record(NEVec::new(vec![IValue::I32(1), IValue::I64(2)]).unwrap()),
 ///     IValue::F32(3.),
 /// ]).unwrap())];
 /// let t = from_interface_values::<T>(&values).unwrap();
@@ -62,14 +62,14 @@ where
     }
 }
 
-/// The deserializer. The iterator iterates over `InterfaceValue`s,
+/// The deserializer. The iterator iterates over `IValue`s,
 /// all flatten, see `FlattenIValueIterator`.
 struct Deserializer<'de> {
     iterator: Peekable<FlattenIValueIterator<'de>>,
 }
 
 impl<'de> Deserializer<'de> {
-    pub fn new(input: &'de [InterfaceValue]) -> Deserializer<'de> {
+    pub fn new(input: &'de [IValue]) -> Deserializer<'de> {
         Deserializer {
             iterator: FlattenIValueIterator::new(input).peekable(),
         }

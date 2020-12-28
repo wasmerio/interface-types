@@ -6,19 +6,18 @@ use crate::interpreter::instructions::to_native;
 use crate::{
     errors::{InstructionError, InstructionErrorKind},
     interpreter::Instruction,
-    types::InterfaceType,
-    values::InterfaceValue,
+    IType, IValue,
 };
 
 use std::convert::TryInto;
 
 pub(super) fn array_lift_memory_<'instance, Instance, Export, LocalImport, Memory, MemoryView>(
     instance: &'instance Instance,
-    value_type: &InterfaceType,
+    value_type: &IType,
     offset: usize,
     size: usize,
     instruction: Instruction,
-) -> Result<Vec<InterfaceValue>, InstructionError>
+) -> Result<Vec<IValue>, InstructionError>
 where
     Export: crate::interpreter::wasm::structures::Export,
     LocalImport: crate::interpreter::wasm::structures::LocalImport,
@@ -38,74 +37,58 @@ where
     let data = read_from_instance_mem(instance, instruction.clone(), offset, size)?;
 
     let result_array = match value_type {
-        InterfaceType::S8 => {
+        IType::S8 => {
             let data = transmute_vec::<u8, i8>(data).unwrap();
-            data.into_iter().map(InterfaceValue::S8).collect::<Vec<_>>()
+            data.into_iter().map(IValue::S8).collect::<Vec<_>>()
         }
-        InterfaceType::S16 => {
+        IType::S16 => {
             let data = transmute_many::<i16, AllOrNothingGuard>(&data).unwrap();
 
-            data.iter()
-                .map(|v| InterfaceValue::S16(*v))
-                .collect::<Vec<_>>()
+            data.iter().map(|v| IValue::S16(*v)).collect::<Vec<_>>()
         }
-        InterfaceType::S32 => {
+        IType::S32 => {
             let data = transmute_many::<i32, AllOrNothingGuard>(&data).unwrap();
-            data.iter()
-                .map(|v| InterfaceValue::S32(*v))
-                .collect::<Vec<_>>()
+            data.iter().map(|v| IValue::S32(*v)).collect::<Vec<_>>()
         }
-        InterfaceType::S64 => {
+        IType::S64 => {
             let data = transmute_many::<i64, AllOrNothingGuard>(&data).unwrap();
-            data.iter()
-                .map(|v| InterfaceValue::S64(*v))
-                .collect::<Vec<_>>()
+            data.iter().map(|v| IValue::S64(*v)).collect::<Vec<_>>()
         }
-        InterfaceType::I32 => {
+        IType::I32 => {
             let data = transmute_many::<i32, AllOrNothingGuard>(&data).unwrap();
-            data.iter()
-                .map(|v| InterfaceValue::I32(*v))
-                .collect::<Vec<_>>()
+            data.iter().map(|v| IValue::I32(*v)).collect::<Vec<_>>()
         }
-        InterfaceType::I64 => {
+        IType::I64 => {
             let data = transmute_many::<i64, AllOrNothingGuard>(&data).unwrap();
-            data.iter()
-                .map(|v| InterfaceValue::S64(*v))
-                .collect::<Vec<_>>()
+            data.iter().map(|v| IValue::S64(*v)).collect::<Vec<_>>()
         }
-        InterfaceType::U8 => data.into_iter().map(InterfaceValue::U8).collect::<Vec<_>>(),
-        InterfaceType::U16 => {
+        IType::U8 => data.into_iter().map(IValue::U8).collect::<Vec<_>>(),
+        IType::U16 => {
             let data = transmute_many::<u16, AllOrNothingGuard>(&data).unwrap();
-            data.iter()
-                .map(|v| InterfaceValue::U16(*v))
-                .collect::<Vec<_>>()
+            data.iter().map(|v| IValue::U16(*v)).collect::<Vec<_>>()
         }
-        InterfaceType::U32 => {
+        IType::U32 => {
+            let data = transmute_many::<u32, AllOrNothingGuard>(&data).unwrap();
+            data.iter().map(|v| IValue::U32(*v)).collect::<Vec<_>>()
+        }
+        IType::U64 => {
+            let data = transmute_many::<u64, AllOrNothingGuard>(&data).unwrap();
+            data.iter().map(|v| IValue::U64(*v)).collect::<Vec<_>>()
+        }
+        IType::F32 => {
             let data = transmute_many::<u32, AllOrNothingGuard>(&data).unwrap();
             data.iter()
-                .map(|v| InterfaceValue::U32(*v))
+                .map(|v| IValue::F32(f32::from_bits(*v)))
                 .collect::<Vec<_>>()
         }
-        InterfaceType::U64 => {
+        IType::F64 => {
             let data = transmute_many::<u64, AllOrNothingGuard>(&data).unwrap();
             data.iter()
-                .map(|v| InterfaceValue::U64(*v))
+                .map(|v| IValue::F64(f64::from_bits(*v)))
                 .collect::<Vec<_>>()
         }
-        InterfaceType::F32 => {
-            let data = transmute_many::<u32, AllOrNothingGuard>(&data).unwrap();
-            data.iter()
-                .map(|v| InterfaceValue::F32(f32::from_bits(*v)))
-                .collect::<Vec<_>>()
-        }
-        InterfaceType::F64 => {
-            let data = transmute_many::<u64, AllOrNothingGuard>(&data).unwrap();
-            data.iter()
-                .map(|v| InterfaceValue::F64(f64::from_bits(*v)))
-                .collect::<Vec<_>>()
-        }
-        InterfaceType::Anyref => unimplemented!(),
-        InterfaceType::String => {
+        IType::Anyref => unimplemented!(),
+        IType::String => {
             let data = transmute_many::<u32, AllOrNothingGuard>(&data).unwrap();
 
             if data.is_empty() {
@@ -134,12 +117,12 @@ where
 
                 // TODO: check
                 let string = String::from_utf8(string_mem).unwrap();
-                result.push(InterfaceValue::String(string));
+                result.push(IValue::String(string));
             }
 
             result
         }
-        InterfaceType::Array(ty) => {
+        IType::Array(ty) => {
             let data = transmute_many::<u32, AllOrNothingGuard>(&data).unwrap();
 
             if data.is_empty() {
@@ -167,12 +150,12 @@ where
                     instruction.clone(),
                 )?;
 
-                result.push(InterfaceValue::Array(value));
+                result.push(IValue::Array(value));
             }
 
             result
         }
-        InterfaceType::Record(record_type_id) => {
+        IType::Record(record_type_id) => {
             let record_type = instance.wit_record_by_id(*record_type_id).ok_or_else(|| {
                 InstructionError::new(
                     instruction.clone(),
@@ -205,7 +188,7 @@ where
 
 pub(crate) fn array_lift_memory<Instance, Export, LocalImport, Memory, MemoryView>(
     instruction: Instruction,
-    value_type: InterfaceType,
+    value_type: IType,
 ) -> crate::interpreter::ExecutableInstruction<Instance, Export, LocalImport, Memory, MemoryView>
 where
     Export: crate::interpreter::wasm::structures::Export,
@@ -253,7 +236,7 @@ where
             )?;
 
             log::trace!("array.lift_memory: pushing {:?} on the stack", array);
-            runtime.stack.push(InterfaceValue::Array(array));
+            runtime.stack.push(IValue::Array(array));
 
             Ok(())
         }
@@ -263,7 +246,7 @@ where
 pub(super) fn array_lower_memory_<Instance, Export, LocalImport, Memory, MemoryView>(
     instance: &mut Instance,
     instruction: Instruction,
-    array_values: Vec<InterfaceValue>,
+    array_values: Vec<IValue>,
 ) -> Result<(usize, usize), InstructionError>
 where
     Export: crate::interpreter::wasm::structures::Export,
@@ -278,19 +261,19 @@ where
     // here it's known that all interface values have the same type
     for value in array_values {
         match value {
-            InterfaceValue::S8(value) => result.push(value as _),
-            InterfaceValue::S16(value) => result.push(value as _),
-            InterfaceValue::S32(value) => result.push(value as _),
-            InterfaceValue::S64(value) => result.push(value as _),
-            InterfaceValue::U8(value) => result.push(value as _),
-            InterfaceValue::U16(value) => result.push(value as _),
-            InterfaceValue::U32(value) => result.push(value as _),
-            InterfaceValue::U64(value) => result.push(value as _),
-            InterfaceValue::I32(value) => result.push(value as _),
-            InterfaceValue::I64(value) => result.push(value as _),
-            InterfaceValue::F32(value) => result.push(value as _),
-            InterfaceValue::F64(value) => result.push(value.to_bits()),
-            InterfaceValue::String(value) => {
+            IValue::S8(value) => result.push(value as _),
+            IValue::S16(value) => result.push(value as _),
+            IValue::S32(value) => result.push(value as _),
+            IValue::S64(value) => result.push(value as _),
+            IValue::U8(value) => result.push(value as _),
+            IValue::U16(value) => result.push(value as _),
+            IValue::U32(value) => result.push(value as _),
+            IValue::U64(value) => result.push(value as _),
+            IValue::I32(value) => result.push(value as _),
+            IValue::I64(value) => result.push(value as _),
+            IValue::F32(value) => result.push(value as _),
+            IValue::F64(value) => result.push(value.to_bits()),
+            IValue::String(value) => {
                 let string_pointer = if !value.is_empty() {
                     write_to_instance_mem(instance, instruction.clone(), value.as_bytes())?
                 } else {
@@ -301,7 +284,7 @@ where
                 result.push(value.len() as _);
             }
 
-            InterfaceValue::Array(values) => {
+            IValue::Array(values) => {
                 let (array_offset, array_size) = if !values.is_empty() {
                     array_lower_memory_(instance, instruction.clone(), values)?
                 } else {
@@ -312,7 +295,7 @@ where
                 result.push(array_size as _);
             }
 
-            InterfaceValue::Record(values) => {
+            IValue::Record(values) => {
                 let record_offset =
                     super::record_lower_memory_(instance, instruction.clone(), values)?;
                 result.push(record_offset as _);
@@ -328,7 +311,7 @@ where
 
 pub(crate) fn array_lower_memory<Instance, Export, LocalImport, Memory, MemoryView>(
     instruction: Instruction,
-    value_type: InterfaceType,
+    value_type: IType,
 ) -> crate::interpreter::ExecutableInstruction<Instance, Export, LocalImport, Memory, MemoryView>
 where
     Export: crate::interpreter::wasm::structures::Export,
@@ -351,7 +334,7 @@ where
             })?;
 
             match stack_value {
-                InterfaceValue::Array(values) => {
+                IValue::Array(values) => {
                     log::trace!("array.lower_memory: obtained {:?} values on the stack for interface type {:?}", values, value_type);
 
                     for value in values.iter() {
@@ -371,15 +354,15 @@ where
                         offset,
                         size
                     );
-                    runtime.stack.push(InterfaceValue::I32(offset as _));
-                    runtime.stack.push(InterfaceValue::I32(size as _));
+                    runtime.stack.push(IValue::I32(offset as _));
+                    runtime.stack.push(IValue::I32(size as _));
 
                     Ok(())
                 }
                 _ => Err(InstructionError::new(
                     instruction.clone(),
                     InstructionErrorKind::InvalidValueOnTheStack {
-                        expected_type: InterfaceType::Array(Box::new(value_type.clone())),
+                        expected_type: IType::Array(Box::new(value_type.clone())),
                         received_value: stack_value.clone(),
                     },
                 )),

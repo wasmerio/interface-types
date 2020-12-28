@@ -1,13 +1,13 @@
 //! This module defines the WIT types.
 
-use crate::vec1::Vec1;
+use crate::ne_vec::NEVec;
 
 use serde::Deserialize;
 use serde::Serialize;
 
 /// Represents the types supported by WIT.
 #[derive(PartialEq, Eq, Debug, Clone, Hash, Serialize, Deserialize)]
-pub enum InterfaceType {
+pub enum IType {
     /// A 8-bits signed integer.
     S8,
 
@@ -42,7 +42,7 @@ pub enum InterfaceType {
     String,
 
     /// An array of values of the same type.
-    Array(Box<InterfaceType>),
+    Array(Box<IType>),
 
     /// An `any` reference.
     Anyref,
@@ -65,7 +65,7 @@ pub struct RecordFieldType {
     pub name: String,
 
     /// A field type.
-    pub ty: InterfaceType,
+    pub ty: IType,
 }
 
 /// Represents a record type.
@@ -77,18 +77,64 @@ pub struct RecordType {
     /// Types and names representing the fields.
     /// A record must have at least one field, hence the
     /// [`Vec1`][crate::vec1::Vec1].
-    pub fields: Vec1<RecordFieldType>,
+    pub fields: NEVec<RecordFieldType>,
 }
 
 impl Default for RecordType {
     fn default() -> Self {
         Self {
             name: String::new(),
-            fields: Vec1::new(vec![RecordFieldType {
+            fields: NEVec::new(vec![RecordFieldType {
                 name: String::new(),
-                ty: InterfaceType::S8,
+                ty: IType::S8,
             }])
             .unwrap(),
         }
+    }
+}
+
+/// Encode an `IType` into a string.
+// TODO: consider change to impl Display
+impl ToString for &IType {
+    fn to_string(&self) -> String {
+        match &self {
+            IType::S8 => "s8".to_string(),
+            IType::S16 => "s16".to_string(),
+            IType::S32 => "s32".to_string(),
+            IType::S64 => "s64".to_string(),
+            IType::U8 => "u8".to_string(),
+            IType::U16 => "u16".to_string(),
+            IType::U32 => "u32".to_string(),
+            IType::U64 => "u64".to_string(),
+            IType::F32 => "f32".to_string(),
+            IType::F64 => "f64".to_string(),
+            IType::String => "string".to_string(),
+            IType::Array(ty) => format!("array ({})", ty.as_ref().to_string()),
+            IType::Anyref => "anyref".to_string(),
+            IType::I32 => "i32".to_string(),
+            IType::I64 => "i64".to_string(),
+            IType::Record(record_type_id) => format!("record {}", record_type_id),
+        }
+    }
+}
+
+impl ToString for &RecordType {
+    fn to_string(&self) -> String {
+        format!(
+            "record ${} (\n{fields})",
+            self.name,
+            fields = self
+                .fields
+                .iter()
+                .fold(String::new(), |mut accumulator, field_type| {
+                    accumulator.push(' ');
+                    accumulator.push_str(&format!(
+                        "field ${}: {}\n",
+                        field_type.name,
+                        (&field_type.ty).to_string()
+                    ));
+                    accumulator
+                }),
+        )
     }
 }

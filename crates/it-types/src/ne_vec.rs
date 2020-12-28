@@ -1,4 +1,4 @@
-//! `Vec1<T>` represents a non-empty `Vec<T>`.
+//! `NEVec<T>` represents a non-empty `Vec<T>`.
 
 use serde::{Deserialize, Serialize};
 use std::{
@@ -7,14 +7,14 @@ use std::{
     ops,
 };
 
-/// `Vec1<T>` represents a non-empty `Vec<T>`. It derefs to `Vec<T>`
+/// `NEVec<T>` represents a non-empty `Vec<T>`. It derefs to `Vec<T>`
 /// directly.
 #[derive(Clone, PartialEq, Eq, Serialize, Hash, Deserialize, Default)]
-pub struct Vec1<T>(Vec<T>)
+pub struct NEVec<T>(Vec<T>)
 where
     T: Debug;
 
-/// Represents the only error that can be emitted by `Vec1`, i.e. when
+/// Represents the only error that can be emitted by `NEVec`, i.e. when
 /// the number of items is zero.
 #[derive(Debug)]
 pub struct EmptyVec;
@@ -23,11 +23,14 @@ impl error::Error for EmptyVec {}
 
 impl fmt::Display for EmptyVec {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(formatter, "Vec1 must as least contain one item, zero given")
+        write!(
+            formatter,
+            "NEVec must as least contain one item, zero given"
+        )
     }
 }
 
-impl<T> Vec1<T>
+impl<T> NEVec<T>
 where
     T: Debug,
 {
@@ -41,13 +44,13 @@ where
         }
     }
 
-    /// Converts this Vec1 into Vec
+    /// Converts this NEVec into Vec
     pub fn into_vec(self) -> Vec<T> {
         self.0
     }
 }
 
-impl<T> fmt::Debug for Vec1<T>
+impl<T> fmt::Debug for NEVec<T>
 where
     T: Debug,
 {
@@ -56,7 +59,7 @@ where
     }
 }
 
-impl<T> ops::Deref for Vec1<T>
+impl<T> ops::Deref for NEVec<T>
 where
     T: Debug,
 {

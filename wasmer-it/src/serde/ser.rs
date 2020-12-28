@@ -1,8 +1,7 @@
 //! Provides a serializer from Rust value to WIT values.
 
 use crate::IValue;
-use crate::IValueImpl;
-use crate::Vec1;
+use crate::NEVec;
 use serde::{ser, Serialize};
 use std::fmt::{self, Display};
 
@@ -39,9 +38,9 @@ use std::fmt::{self, Display};
 ///
 /// assert_eq!(
 ///     to_interface_value(&input).unwrap(),
-///     IValue::Record(Vec1::new(vec![
+///     IValue::Record(NEVec::new(vec![
 ///         IValue::String("abc".to_string()),
-///         IValue::Record(Vec1::new(vec![IValue::I32(1), IValue::I64(2)]).unwrap()),
+///         IValue::Record(NEVec::new(vec![IValue::I32(1), IValue::I64(2)]).unwrap()),
 ///         IValue::F32(3.),
 ///     ]).unwrap()),
 /// );
@@ -51,7 +50,6 @@ where
     T: Serialize,
 {
     let mut serializer = Serializer::new();
-    let value = ValueImpl(value);
     value.serialize(&mut serializer)?;
 
     if serializer.values.len() != 1 {
@@ -64,14 +62,14 @@ where
         } else {
             let first_value = first_values.pop().unwrap(); // this `unwrap` is safe because we are sure the length is 1.
 
-            Ok(first_value.0)
+            Ok(first_value)
         }
     }
 }
 
 /// The serializer.
 struct Serializer {
-    values: Vec<Vec<IValueImpl>>,
+    values: Vec<Vec<IValue>>,
 }
 
 impl Serializer {
@@ -81,7 +79,7 @@ impl Serializer {
         }
     }
 
-    fn last(&mut self) -> &mut Vec<IValueImpl> {
+    fn last(&mut self) -> &mut Vec<IValue> {
         self.values.last_mut().unwrap()
     }
 
@@ -89,7 +87,7 @@ impl Serializer {
         self.values.push(Vec::with_capacity(capacity));
     }
 
-    fn pop(&mut self) -> Result<Vec<IValueImpl>, SerializeError> {
+    fn pop(&mut self) -> Result<Vec<IValue>, SerializeError> {
         // The first `vec` contains the final result. It is forbidden
         // to `pop` it as is.
         if self.values.len() < 2 {
@@ -364,10 +362,7 @@ impl<'a> ser::SerializeSeq for &'a mut Serializer {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        let values = self.pop()?.into_iter().map(|v| v.0).collect::<Vec<_>>();
-
-        let record = IValue::Array(values);
-        let record = IValueImpl(record);
+        let record = IValue::Array(self.pop()?);
         self.last().push(record);
 
         Ok(())
@@ -402,11 +397,9 @@ impl<'a> ser::SerializeTupleStruct for &'a mut Serializer {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        let values = self.pop()?.into_iter().map(|v| v.0).collect::<Vec<_>>();
-
-        let record =
-            IValue::Record(Vec1::new(values).map_err(|_| Self::Error::RecordNeedsAtLeastOneField)?);
-        let record = ValueImpl(record);
+        let record = IValue::Record(
+            NEVec::new(self.pop()?).map_err(|_| Self::Error::RecordNeedsAtLeastOneField)?,
+        );
         self.last().push(record);
 
         Ok(())
@@ -448,11 +441,9 @@ impl<'a> ser::SerializeMap for &'a mut Serializer {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        let values = self.pop()?.into_iter().map(|v| v.0).collect::<Vec<_>>();
-
-        let record =
-            IValue::Record(Vec1::new(values).map_err(|_| Self::Error::RecordNeedsAtLeastOneField)?);
-        let record = ValueImpl(record);
+        let record = IValue::Record(
+            NEVec::new(self.pop()?).map_err(|_| Self::Error::RecordNeedsAtLeastOneField)?,
+        );
         self.last().push(record);
 
         Ok(())
@@ -471,11 +462,9 @@ impl<'a> ser::SerializeStruct for &'a mut Serializer {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        let values = self.pop()?.into_iter().map(|v| v.0).collect::<Vec<_>>();
-
-        let record =
-            IValue::Record(Vec1::new(values).map_err(|_| Self::Error::RecordNeedsAtLeastOneField)?);
-        let record = ValueImpl(record);
+        let record = IValue::Record(
+            NEVec::new(self.pop()?).map_err(|_| Self::Error::RecordNeedsAtLeastOneField)?,
+        );
         self.last().push(record);
 
         Ok(())
