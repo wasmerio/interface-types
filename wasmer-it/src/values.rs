@@ -8,11 +8,11 @@ pub use crate::serde::{de::from_interface_values, ser::to_interface_value};
 /// Iterates over a vector of `IValues` but flatten all the
 /// values. So `I32(1), Record([I32(2), I32(3)]), I32(4)` will be
 /// iterated like `I32(1), I32(2), I32(3), I32(4)`.
-pub(crate) struct FlattenIValueIterator<'a> {
+pub(crate) struct FlattenIRecordIterator<'a> {
     iterators: Vec<Iter<'a, IValue>>,
 }
 
-impl<'a> FlattenIValueIterator<'a> {
+impl<'a> FlattenIRecordIterator<'a> {
     pub(crate) fn new(values: &'a [IValue]) -> Self {
         Self {
             iterators: vec![values.iter()],
@@ -20,7 +20,7 @@ impl<'a> FlattenIValueIterator<'a> {
     }
 }
 
-impl<'a> Iterator for FlattenIValueIterator<'a> {
+impl<'a> Iterator for FlattenIRecordIterator<'a> {
     type Item = &'a IValue;
 
     fn next(&mut self) -> Option<Self::Item> {

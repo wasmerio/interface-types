@@ -1,6 +1,6 @@
 //! Provides a deserializer from WIT values to Rust value.
 
-use crate::{values::FlattenIValueIterator, IType, IValue};
+use crate::{values::FlattenIRecordIterator, IType, IValue};
 use serde::{de, Deserialize};
 use std::{
     fmt::{self, Display},
@@ -65,13 +65,13 @@ where
 /// The deserializer. The iterator iterates over `IValue`s,
 /// all flatten, see `FlattenIValueIterator`.
 struct Deserializer<'de> {
-    iterator: Peekable<FlattenIValueIterator<'de>>,
+    iterator: Peekable<FlattenIRecordIterator<'de>>,
 }
 
 impl<'de> Deserializer<'de> {
     pub fn new(input: &'de [IValue]) -> Deserializer<'de> {
         Deserializer {
-            iterator: FlattenIValueIterator::new(input).peekable(),
+            iterator: FlattenIRecordIterator::new(input).peekable(),
         }
     }
 }
