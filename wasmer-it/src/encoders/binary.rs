@@ -1,191 +1,12 @@
 //! Writes the AST into bytes representing WIT with its binary format.
 
-use crate::{ast::*, interpreter::Instruction};
+use crate::ast::*;
+use crate::interpreter::Instruction;
 
-use crate::IRecordFieldType;
-use crate::IRecordType;
-use crate::IType;
+use it_to_bytes::ToBytes;
 
 use std::io;
 use std::io::Write;
-use std::ops::Deref;
-
-/// A trait for converting a value to bytes.
-pub trait ToBytes<W>
-where
-    W: Write,
-{
-    /// Converts the given value into `&[u8]` in the given `writer`.
-    fn to_bytes(&self, writer: &mut W) -> io::Result<()>;
-}
-
-/// Miscellaneous IType wrapper to pass the orphan rule.
-pub struct ITypeImpl<'a>(pub &'a IType);
-
-/// Miscellaneous IRecordType wrapper to pass the orphan rule.
-pub struct IRecordTypeImpl<'a>(pub &'a IRecordType);
-
-/// Miscellaneous IRecordFieldType wrapper to pass the orphan rule.
-pub struct IRecordFieldTypeImpl<'a>(pub &'a IRecordFieldType);
-
-/// Encode a `u8` into a byte (well, it's already a byte!).
-impl<W> ToBytes<W> for u8
-where
-    W: Write,
-{
-    fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
-        writer.write_all(&[*self])
-    }
-}
-
-/// Encode a `u64` into bytes with a LEB128 representation.
-///
-/// Decoder is `decoders::binary::uleb`.
-impl<W> ToBytes<W> for u64
-where
-    W: Write,
-{
-    fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
-        let mut value = *self;
-
-        // Code adapted from the Rust' `serialize` library.
-        loop {
-            if value < 0x80 {
-                writer.write_all(&[value as u8])?;
-
-                break;
-            }
-
-            writer.write_all(&[((value & 0x7f) | 0x80) as u8])?;
-            value >>= 7;
-        }
-
-        Ok(())
-    }
-}
-
-/// Encode an `IType` into bytes.
-impl<W> ToBytes<W> for ITypeImpl<'_>
-where
-    W: Write,
-{
-    fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
-        match &self.0 {
-            IType::S8 => 0x00_u8.to_bytes(writer),
-            IType::S16 => 0x01_u8.to_bytes(writer),
-            IType::S32 => 0x02_u8.to_bytes(writer),
-            IType::S64 => 0x03_u8.to_bytes(writer),
-            IType::U8 => 0x04_u8.to_bytes(writer),
-            IType::U16 => 0x05_u8.to_bytes(writer),
-            IType::U32 => 0x06_u8.to_bytes(writer),
-            IType::U64 => 0x07_u8.to_bytes(writer),
-            IType::F32 => 0x08_u8.to_bytes(writer),
-            IType::F64 => 0x09_u8.to_bytes(writer),
-            IType::String => 0x0a_u8.to_bytes(writer),
-            IType::Array(ty) => {
-                0x36_u8.to_bytes(writer)?;
-                let itype_impl = ITypeImpl(ty);
-                itype_impl.to_bytes(writer)
-            }
-            IType::Anyref => 0x0b_u8.to_bytes(writer),
-            IType::I32 => 0x0c_u8.to_bytes(writer),
-            IType::I64 => 0x0d_u8.to_bytes(writer),
-            IType::Record(record_id) => {
-                0x0e_u8.to_bytes(writer)?;
-                record_id.to_bytes(writer)
-            }
-        }
-    }
-}
-
-/// Encode a `RecordType` into bytes.
-impl<W> ToBytes<W> for IRecordFieldTypeImpl<'_>
-where
-    W: Write,
-{
-    fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
-        let record_field_type = &self.0;
-        record_field_type.name.as_str().to_bytes(writer)?;
-        let itype_impl = ITypeImpl(&record_field_type.ty);
-        itype_impl.to_bytes(writer)
-    }
-}
-
-/// Encode a `RecordType` into bytes.
-impl<W> ToBytes<W> for IRecordTypeImpl<'_>
-where
-    W: Write,
-{
-    fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
-        let record_type = self.0;
-        record_type.name.as_str().to_bytes(writer)?;
-        let record_type_impl = record_type
-            .fields
-            .deref()
-            .iter()
-            .map(|r| IRecordFieldTypeImpl(r))
-            .collect::<Vec<_>>();
-
-        record_type_impl.to_bytes(writer)
-    }
-}
-
-/// Encode a `str` into bytes.
-///
-/// Decoder is `decoders::binary::string`.
-impl<W> ToBytes<W> for &str
-where
-    W: Write,
-{
-    fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
-        // Size first.
-        writer.write_all(&[self.len() as u8])?;
-
-        // Then the string.
-        writer.write_all(self.as_bytes())?;
-
-        Ok(())
-    }
-}
-
-/// Encode a String into bytes.
-///
-/// Decoder is `decoders::binary::string`.
-impl<W> ToBytes<W> for String
-where
-    W: Write,
-{
-    fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
-        // Size first.
-        writer.write_all(&[self.len() as u8])?;
-
-        // Then the string.
-        writer.write_all(self.as_bytes())?;
-
-        Ok(())
-    }
-}
-
-/// Encode a vector into bytes.
-///
-/// Decoder is `decoders::binary::list`.
-impl<W, I> ToBytes<W> for Vec<I>
-where
-    W: Write,
-    I: ToBytes<W>,
-{
-    fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
-        // Size first.
-        (self.len() as u64).to_bytes(writer)?;
-
-        // Then the items.
-        for item in self {
-            item.to_bytes(writer)?;
-        }
-
-        Ok(())
-    }
-}
 
 /// Encode a `TypeKind` into bytes.
 impl<W> ToBytes<W> for TypeKind
@@ -222,8 +43,7 @@ where
 {
     fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
         self.name.to_bytes(writer)?;
-        let itype_impl = ITypeImpl(&self.ty);
-        itype_impl.to_bytes(writer)
+        self.ty.to_bytes(writer)
     }
 }
 
@@ -242,17 +62,12 @@ where
             } => {
                 TypeKind::Function.to_bytes(writer)?;
                 arguments.to_bytes(writer)?;
-                let output_types = output_types
-                    .iter()
-                    .map(|t| ITypeImpl(t))
-                    .collect::<Vec<_>>();
                 output_types.to_bytes(writer)?;
             }
 
             Type::Record(record_type) => {
                 TypeKind::Record.to_bytes(writer)?;
-                let record_impl = IRecordTypeImpl(record_type.deref());
-                record_impl.to_bytes(writer)?;
+                record_type.to_bytes(writer)?;
             }
         }
 
@@ -416,13 +231,11 @@ where
 
             Instruction::ArrayLiftMemory { value_type } => {
                 0x37_u8.to_bytes(writer)?;
-                let value_type_impl = ITypeImpl(value_type);
-                value_type_impl.to_bytes(writer)?
+                value_type.to_bytes(writer)?
             }
             Instruction::ArrayLowerMemory { value_type } => {
                 0x38_u8.to_bytes(writer)?;
-                let value_type_impl = ITypeImpl(value_type);
-                value_type_impl.to_bytes(writer)?
+                value_type.to_bytes(writer)?
             }
             /*
             Instruction::ArraySize => 0x39_u8.to_bytes(writer)?,

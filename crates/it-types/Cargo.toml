@@ -1,12 +1,14 @@
 [package]
 name = "fluence-it-types"
-version = "0.1.0"
+version = "0.1.1"
 description = "Definitions of IValue and IType"
 authors = ["Fluence Labs"]
 edition = "2018"
 license = "Apache-2.0"
 
 [dependencies]
+it-to-bytes = { path = "../to-bytes/", version = "0.1.0" }
+
 serde = { version = "1.0.118", features = ["derive", "rc"]}
 
 nom = { version = "5.1", optional = true }

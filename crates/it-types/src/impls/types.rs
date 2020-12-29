@@ -3,9 +3,68 @@ use crate::IRecordFieldType;
 use crate::IRecordType;
 use crate::IType;
 
+use it_to_bytes::ToBytes;
 use wast::parser::Parse;
 use wast::parser::Parser;
 use wast::Error as ParseError;
+
+use std::io;
+use std::io::Write;
+
+/// Encode an `IType` into bytes.
+impl<W> ToBytes<W> for IType
+where
+    W: Write,
+{
+    fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
+        match self {
+            IType::S8 => 0x00_u8.to_bytes(writer),
+            IType::S16 => 0x01_u8.to_bytes(writer),
+            IType::S32 => 0x02_u8.to_bytes(writer),
+            IType::S64 => 0x03_u8.to_bytes(writer),
+            IType::U8 => 0x04_u8.to_bytes(writer),
+            IType::U16 => 0x05_u8.to_bytes(writer),
+            IType::U32 => 0x06_u8.to_bytes(writer),
+            IType::U64 => 0x07_u8.to_bytes(writer),
+            IType::F32 => 0x08_u8.to_bytes(writer),
+            IType::F64 => 0x09_u8.to_bytes(writer),
+            IType::String => 0x0a_u8.to_bytes(writer),
+            IType::Array(ty) => {
+                0x36_u8.to_bytes(writer)?;
+                ty.to_bytes(writer)
+            }
+            IType::Anyref => 0x0b_u8.to_bytes(writer),
+            IType::I32 => 0x0c_u8.to_bytes(writer),
+            IType::I64 => 0x0d_u8.to_bytes(writer),
+            IType::Record(record_id) => {
+                0x0e_u8.to_bytes(writer)?;
+                record_id.to_bytes(writer)
+            }
+        }
+    }
+}
+
+/// Encode a `RecordType` into bytes.
+impl<W> ToBytes<W> for IRecordFieldType
+where
+    W: Write,
+{
+    fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
+        self.name.as_str().to_bytes(writer)?;
+        self.ty.to_bytes(writer)
+    }
+}
+
+/// Encode a `RecordType` into bytes.
+impl<W> ToBytes<W> for IRecordType
+where
+    W: Write,
+{
+    fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
+        self.name.as_str().to_bytes(writer)?;
+        self.fields.to_bytes(writer)
+    }
+}
 
 mod keyword {
     pub use wast::{
