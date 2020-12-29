@@ -53,9 +53,9 @@
 #![doc(html_favicon_url = "https://wasmer.io/static/icons/favicon.ico")]
 #![doc(html_logo_url = "https://github.com/wasmerio.png")]
 
-mod ast;
+pub mod ast;
 #[macro_use]
-mod macros;
+pub mod macros;
 pub mod decoders;
 pub mod encoders;
 pub mod errors;
@@ -64,11 +64,14 @@ pub mod interpreter;
 mod serde;
 mod values;
 
+// re-exports
 pub use fluence_it_types::ne_vec::NEVec;
 pub use fluence_it_types::IRecordFieldType;
 pub use fluence_it_types::IRecordType;
 pub use fluence_it_types::IType;
 pub use fluence_it_types::IValue;
+
+pub use it_to_bytes::ToBytes;
 
 #[cfg(feature = "serde")]
 pub use crate::serde::de::from_interface_values;

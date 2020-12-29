@@ -3,7 +3,7 @@
 /// This macro creates a `Vec1` by checking at compile-time that its
 /// invariant holds.
 #[macro_export]
-macro_rules! vec1 {
+macro_rules! ne_vec {
     ($item:expr; 0) => {
         compile_error!("Cannot create an empty `Vec1`, it violates its invariant.")
     };
@@ -14,13 +14,13 @@ macro_rules! vec1 {
 
     ($item:expr; $length:expr) => {
         {
-            crate::vec1::NEVec::new(vec![$item; $length]).unwrap()
+            fluence_it_types::ne_vec::NEVec::new(vec![$item; $length]).unwrap()
         }
     };
 
     ($($item:expr),+ $(,)?) => {
         {
-            crate::vec1::NEVec::new(vec![$($item),*]).unwrap()
+            fluence_it_types::ne_vec::NEVec::new(vec![$($item),*]).unwrap()
         }
     };
 }
