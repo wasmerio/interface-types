@@ -33,6 +33,7 @@ where
             Self::Adapter => 0x02_u8.to_bytes(writer),
             Self::Export => 0x03_u8.to_bytes(writer),
             Self::Implementation => 0x04_u8.to_bytes(writer),
+            Self::Version => 0x05_u8.to_bytes(writer),
         }
     }
 }
@@ -144,6 +145,9 @@ where
     W: Write,
 {
     fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
+        InterfaceKind::Version.to_bytes(writer)?;
+        self.version.to_string().to_bytes(writer)?;
+
         if !self.types.is_empty() {
             InterfaceKind::Type.to_bytes(writer)?;
             self.types.to_bytes(writer)?;

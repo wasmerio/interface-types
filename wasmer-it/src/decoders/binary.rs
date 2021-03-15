@@ -35,6 +35,7 @@ impl TryFrom<u8> for InterfaceKind {
             0x02 => Self::Adapter,
             0x03 => Self::Export,
             0x04 => Self::Implementation,
+            0x05 => Self::Version,
             _ => return Err("Unknown interface kind code."),
         })
     }
@@ -487,6 +488,7 @@ fn interfaces<'input, E: ParseError<&'input [u8]>>(
 ) -> IResult<&'input [u8], Interfaces, E> {
     let mut input = bytes;
 
+    let mut all_versions = vec![];
     let mut all_types = vec![];
     let mut all_imports = vec![];
     let mut all_adapters = vec![];
@@ -500,6 +502,10 @@ fn interfaces<'input, E: ParseError<&'input [u8]>>(
             .map_err(|_| Err::Error(make_error(input, ErrorKind::ParseTo)))?;
 
         match interface_kind {
+            InterfaceKind::Version => {
+                consume!((input, new_version) = string(input)?);
+                all_versions.push(new_version);
+            }
             InterfaceKind::Type => {
                 consume!((input, mut new_types) = types(input)?);
                 all_types.append(&mut new_types);
@@ -527,9 +533,12 @@ fn interfaces<'input, E: ParseError<&'input [u8]>>(
         }
     }
 
+    let version = try_into_version(all_versions).map_err(|e| Err::Error(make_error(input, e)))?;
+
     Ok((
         input,
         Interfaces {
+            version,
             types: all_types,
             imports: all_imports,
             adapters: all_adapters,
@@ -537,6 +546,22 @@ fn interfaces<'input, E: ParseError<&'input [u8]>>(
             implementations: all_implementations,
         },
     ))
+}
+
+fn try_into_version(versions: Vec<&str>) -> Result<semver::Version, ErrorKind> {
+    use std::str::FromStr;
+
+    if versions.is_empty() {
+        return Err(ErrorKind::NoneOf);
+    }
+
+    if versions.len() != 1 {
+        return Err(ErrorKind::Many0);
+    }
+
+    let version = semver::Version::from_str(&versions[0]).map_err(|_| ErrorKind::IsNot)?;
+
+    Ok(version)
 }
 
 /// Parse a sequence of bytes, expecting it to be a valid WIT binary

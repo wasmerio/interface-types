@@ -72,13 +72,7 @@ where
     W: Write,
 {
     fn to_bytes(&self, writer: &mut W) -> io::Result<()> {
-        // Size first.
-        writer.write_all(&[self.len() as u8])?;
-
-        // Then the string.
-        writer.write_all(self.as_bytes())?;
-
-        Ok(())
+        self.as_str().to_bytes(writer)
     }
 }
 

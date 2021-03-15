@@ -296,6 +296,10 @@ impl<'input> ToString for &Interfaces<'input> {
             }
         };
 
+        output.push_str("Version: ");
+        output.push_str(&self.version.to_string());
+        separator(&mut output);
+
         if !types.is_empty() {
             output.push_str(";; Types");
             output.push_str(&types);

@@ -18,6 +18,7 @@ mod keyword {
     custom_keyword!(r#type = "type");
     custom_keyword!(record);
     custom_keyword!(field);
+    custom_keyword!(version);
 
     // Special symbols
     custom_keyword!(comma = ",");
@@ -380,6 +381,7 @@ impl Parse<'_> for FunctionType {
 
 #[derive(PartialEq, Debug)]
 enum Interface<'a> {
+    Version(String),
     Type(Type),
     Import(Import<'a>),
     Adapter(Adapter),
@@ -397,7 +399,9 @@ impl<'a> Parse<'a> for Interface<'a> {
 
                 let mut lookahead = parser.lookahead1();
 
-                if lookahead.peek::<keyword::r#type>() {
+                if lookahead.peek::<keyword::version>() {
+                    Ok(Interface::Version(parser.parse()?))
+                } else if lookahead.peek::<keyword::r#type>() {
                     Ok(Interface::Type(parser.parse()?))
                 } else if lookahead.peek::<keyword::import>() {
                     Ok(Interface::Import(parser.parse()?))
@@ -548,24 +552,64 @@ impl<'a> Parse<'a> for Adapter {
 
 impl<'a> Parse<'a> for Interfaces<'a> {
     fn parse(parser: Parser<'a>) -> Result<Self> {
-        let mut interfaces: Interfaces = Default::default();
+        let mut version: Option<semver::Version> = None;
+        let mut types = vec![];
+        let mut imports = vec![];
+        let mut adapters = vec![];
+        let mut exports = vec![];
+        let mut implementations = vec![];
 
         while !parser.is_empty() {
             let interface = parser.parse::<Interface>()?;
 
             match interface {
-                Interface::Type(ty) => interfaces.types.push(ty),
-                Interface::Import(import) => interfaces.imports.push(import),
-                Interface::Adapter(adapter) => interfaces.adapters.push(adapter),
-                Interface::Export(export) => interfaces.exports.push(export),
-                Interface::Implementation(implementation) => {
-                    interfaces.implementations.push(implementation)
+                Interface::Version(version_str) => {
+                    try_handle_version(&version_str, &mut version, &parser)?
                 }
+                Interface::Type(ty) => types.push(ty),
+                Interface::Import(import) => imports.push(import),
+                Interface::Adapter(adapter) => adapters.push(adapter),
+                Interface::Export(export) => exports.push(export),
+                Interface::Implementation(implementation) => implementations.push(implementation),
             }
         }
 
+        let version = version.ok_or_else(|| {
+            wast::Error::new(parser.cur_span(), String::from("version must be specified"))
+        })?;
+
+        let interfaces = Interfaces {
+            version,
+            types,
+            imports,
+            adapters,
+            exports,
+            implementations,
+        };
+
         Ok(interfaces)
     }
+}
+
+fn try_handle_version(
+    version_str: &str,
+    version: &mut Option<semver::Version>,
+    parser: &Parser<'_>,
+) -> Result<()> {
+    use std::str::FromStr;
+
+    if version.is_some() {
+        return Err(wast::Error::new(
+            parser.cur_span(),
+            String::from("only one version directive is possible"),
+        ));
+    }
+
+    let parsed_version = semver::Version::from_str(version_str)
+        .map_err(|e| wast::Error::new(parser.cur_span(), format!("version is corrupted: {}", e)))?;
+    *version = Some(parsed_version);
+
+    Ok(())
 }
 
 /// Parse a WIT definition in its textual format, and produces an

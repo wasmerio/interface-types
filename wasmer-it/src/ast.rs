@@ -98,6 +98,9 @@ pub struct Implementation {
 /// Represents the kind of interface.
 #[derive(PartialEq, Eq, Debug, Clone, Hash, Serialize, Deserialize)]
 pub enum InterfaceKind {
+    /// A version.
+    Version,
+
     /// A type.
     Type,
 
@@ -116,8 +119,11 @@ pub enum InterfaceKind {
 
 /// Represents a set of interfaces, i.e. it entirely describes a WIT
 /// definition.
-#[derive(PartialEq, Eq, Debug, Default, Clone, Hash)]
+#[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub struct Interfaces<'input> {
+    /// Version of IT.
+    pub version: semver::Version,
+
     /// All the types.
     pub types: Vec<Type>,
 
